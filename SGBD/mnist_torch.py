@@ -13,25 +13,25 @@ from pythorch_custom import SGBD
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        # self.conv1 = nn.Conv2d(1, 8, 3, 1)
-        # self.conv2 = nn.Conv2d(8, 16, 3, 1)
-        # self.dropout1 = nn.Dropout(0.25)
-        # self.dropout2 = nn.Dropout(0.5)
+        self.conv1 = nn.Conv2d(1, 16, 3, 1)
+        self.conv2 = nn.Conv2d(16, 16, 3, 1)
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.5)
         # self.fc1 = nn.Linear(28 ** 2, 10)
-        self.fc1 = nn.Linear(28 ** 2, 32)
+        self.fc1 = nn.Linear(144 * 16, 32)
         self.fc2 = nn.Linear(32, 10)
 
     def forward(self, x):
-        # x = self.conv1(x)
-        # x = F.relu(x)
-        # x = self.conv2(x)
-        # x = F.relu(x)
-        # x = F.max_pool2d(x, 2)
-        # x = self.dropout1(x)
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
         x = torch.flatten(x, 1)
         x = self.fc1(x)
         x = F.relu(x)
-        # x = self.dropout2(x)
+        x = self.dropout2(x)
         x = self.fc2(x)
         output = F.log_softmax(x, dim=1)
         return output
@@ -141,6 +141,7 @@ def main():
     optimizer = SGBD(model.parameters(), defaults={})
 
     # summary(model, (28 ** 2,))
+    summary(model, (1, 28, 28,))
 
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

@@ -28,10 +28,12 @@ class SGBD(Optimizer):
 
                 z = np.random.normal(sigma, 0.1 * sigma, p.grad.data.shape).astype(np.float32)
                 probs = 1 / (1 + torch.exp(p.grad.data * z * alfa))
+
                 # print(probs.mean(), probs.std())
                 # plt.hist(probs)
                 # plt.show()
                 # exit()
+
                 mask = np.ones(z.shape, dtype=np.float32)
 
                 with np.nditer((probs, mask), op_flags=['readwrite']) as it:
