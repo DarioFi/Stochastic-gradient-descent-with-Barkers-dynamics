@@ -13,12 +13,12 @@ from pythorch_custom import SGBD
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        # self.conv1 = nn.Conv2d(1, 16, 3, 1)
-        # self.conv2 = nn.Conv2d(16, 16, 3, 1)
+        # self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        # self.conv2 = nn.Conv2d(32, 2**8, 3, 1)
         # self.dropout1 = nn.Dropout(0.25)
         # self.dropout2 = nn.Dropout(0.5)
         self.fc1 = nn.Linear(28 ** 2, 10)
-        # self.fc1 = nn.Linear(144 * 16, 32)
+        # self.fc1 = nn.Linear(144 * 2**8, 32)
         # self.fc2 = nn.Linear(32, 10)
 
     def forward(self, x):
@@ -88,8 +88,8 @@ def main(use_mine=True):
 
     if use_cuda:
         device = torch.device("cuda")
-    elif use_mps:
-        device = torch.device("mps")
+    # elif use_mps:
+    #     device = torch.device("mps")
     else:
         device = torch.device("cpu")
 
@@ -114,6 +114,7 @@ def main(use_mine=True):
     train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
+    print(device)
     model = Net().to(device)
 
     if use_mine:

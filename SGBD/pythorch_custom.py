@@ -36,48 +36,38 @@ class SGBD(Optimizer):
 
                 tau = self.tau[p]
 
-                z = np.random.normal(self.sigma, 0.1 * self.sigma, p.grad.data.shape).astype(np.float32)
+                z = torch.cuda.FloatTensor(p.grad.data.shape).normal_(self.sigma, 0.1 * self.sigma)
 
-                alfa = np.ones(z.shape, dtype=np.float32)
+                alfa = torch.cuda.FloatTensor(z.shape).fill_(1)
 
                 m = abs(tau * z) < 1.702
-
-                # if abs(tau * z[i]) > 1.702:
-                #     alfa[i] = 1
+                # print(m.mean())
                 alfa[m] = 1.702 / ((1.702 ** 2 - tau ** 2 * z[m] ** 2) ** .5)
-
-                # print(tau, alfa.mean(), alfa.std(), self.sigma)
-
+                # print(alfa.mean(), alfa.std())
                 scale = 10000
                 probs = 1 / (1 + torch.exp(p.grad.data * scale * z * alfa))
-                if self.probabilities is None:
-                    self.probabilities = list(probs.flatten())
-                    self.isp = False
-                else:
-                    # print(len(self.probabilities))
-                    if len(self.probabilities) > 1e6 and self.isp is False:
-                        plt.hist(self.probabilities, bins=50)
-                        plt.title(f"Probability distribution using param: {scale}")
-                        plt.xlim(0, 1)
-                        plt.show()
-                        # self.isp = True
-                        self.probabilities = []
-                    if self.isp is False:
-                        self.probabilities.extend(probs.flatten())
+
+                # if self.probabilities is None:
+                #     self.probabilities = list(probs.flatten())
+                #     self.isp = False
+                # else:
+                #     print(len(self.probabilities))
+                # if len(self.probabilities) > 1e6 and self.isp is False:
+                #     plt.hist(self.probabilities, bins=50)
+                #     plt.title(f"Probability distribution using param: {scale}")
+                #     plt.xlim(0, 1)
+                #     plt.show()
+                #     self.isp = True
+                # self.probabilities = []
+                # if self.isp is False:
+                #     self.probabilities.extend(probs.flatten())
 
                 self.sigma = (1 - sb) * self.sigma + sb * (.01 - tau * z.mean())
-                # print(probs.mean(), probs.std())
-                # plt.hist(probs)
-                # plt.show()
-                # exit()
 
-                mask = np.ones(z.shape, dtype=np.float32)
+                # mask = np.ones(z.shape, dtype=np.float32)
 
-                with np.nditer((probs, mask), op_flags=['readwrite']) as it:
-                    for pro, mas in it:
-                        if np.random.uniform(0, 1) < pro:
-                            mas[...] = -1
-                p.data -= mask * z
-                # p.data -= 1e-3 * p.grad.data
+                sampled = torch.cuda.FloatTensor(p.grad.data.shape).uniform_(0, 1) - probs
+
+                p.data -= (torch.ceil(sampled) * 2 - 1) * z
 
         return .0
