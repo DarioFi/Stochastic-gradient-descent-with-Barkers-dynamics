@@ -1,102 +1,39 @@
 from __future__ import print_function
 import argparse
+
+import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 from torchsummary import summary
 from pythorch_custom import SGBD
-
-
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        # self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        # self.conv2 = nn.Conv2d(32, 2**8, 3, 1)
-        # self.dropout1 = nn.Dropout(0.25)
-        # self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(28 ** 2, 10)
-        # self.fc1 = nn.Linear(144 * 2**8, 32)
-        # self.fc2 = nn.Linear(32, 10)
-
-    def forward(self, x):
-        # x = self.conv1(x)
-        # x = F.relu(x)
-        # x = self.conv2(x)
-        # x = F.relu(x)
-        # x = F.max_pool2d(x, 2)
-        # x = self.dropout1(x)
-        x = torch.flatten(x, 1)
-        x = self.fc1(x)
-        # x = F.relu(x)
-        # x = self.dropout2(x)
-        # x = self.fc2(x)
-        output = F.log_softmax(x, dim=1)
-        return output
-
-
-def train(model, device, train_loader, optimizer, epoch, log_interval=None):
-    model.train()
-    for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        if batch_idx % log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                       100. * batch_idx / len(train_loader), loss.item()))
-
-
-def test(model, device, test_loader):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    with torch.no_grad():
-        for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
-            output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            correct += pred.eq(target.view_as(pred)).sum().item()
-
-    test_loss /= len(test_loader.dataset)
-
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+from model import MNIST_model, train, test
 
 
 def main(use_mine=True):
     # Training settings
-
-    lr = 1
-    gamma = .7
-    log_interval = 10
+    lr = 1e-4
+    log_interval = 30
     batch_size = 256
     test_batch_size = 1000
-    epochs = 16
+    epochs = 4
 
     use_cuda = torch.cuda.is_available()
-    use_mps = torch.backends.mps.is_available()
 
     torch.manual_seed(2212)
 
     if use_cuda:
         device = torch.device("cuda")
-    # elif use_mps:
-    #     device = torch.device("mps")
     else:
         device = torch.device("cpu")
 
     train_kwargs = {'batch_size': batch_size}
     test_kwargs = {'batch_size': test_batch_size}
+
     if use_cuda:
-        cuda_kwargs = {'num_workers': 1,
+        cuda_kwargs = {'num_workers': 4,
                        'pin_memory': True,
                        'shuffle': True}
         train_kwargs.update(cuda_kwargs)
@@ -104,7 +41,7 @@ def main(use_mine=True):
 
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.1307,), (0.3081,))
+        # transforms.Normalize((0.1307,), (0.3081,))
     ])
 
     dataset1 = datasets.MNIST('../data', train=True, download=True,
@@ -114,26 +51,40 @@ def main(use_mine=True):
     train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
-    print(device)
-    model = Net().to(device)
+    # print(device)
+    model = MNIST_model().to(device)
 
     if use_mine:
         scheduler = None
-        optimizer = SGBD(model.parameters(), defaults={})
+        optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
+                         defaults={}, corrected=False, extreme=False)
     else:
-        optimizer = optim.Adadelta(model.parameters(), lr=lr)
-        scheduler = StepLR(optimizer, step_size=1, gamma=gamma)
+        optimizer = optim.Adam(model.parameters())
+        # scheduler = StepLR(optimizer, step_size=1, gamma=gamma)
+        scheduler = None
 
-    # summary(model, (28 ** 2,))
     summary(model, (1, 28, 28,))
 
+    losses = []
+    accuracies = []
+
     for epoch in range(1, epochs + 1):
-        train(model, device, train_loader, optimizer, epoch, log_interval)
-        test(model, device, test_loader)
+        train(model, device, train_loader, optimizer, epoch, log_interval, log=True)
+        l, a = test(model, device, test_loader, log=True)
+        losses.append(l)
+        accuracies.append(a)
         if scheduler is not None:
             scheduler.step()
 
-    torch.save(model.state_dict(), "mnist_cnn.pt")
+    for key, value in optimizer.grad_avg.items():
+        plt.plot(value)
+        plt.title(str(key.shape))
+        plt.show()
+        # optimizer.grad_avg[key] = []
+
+    print(f"Optimizer: {optimizer.__class__}")
+    for i, (l, a) in enumerate(zip(losses, accuracies)):
+        print(f"Epoch: {i + 1} - Loss: {l} - Accuracy: {a}")
 
 
 if __name__ == '__main__':
