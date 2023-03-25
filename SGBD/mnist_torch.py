@@ -17,7 +17,7 @@ def main(use_mine=True):
     log_interval = 30
     batch_size = 256
     test_batch_size = 1000
-    epochs = 4
+    epochs = 8
 
     use_cuda = torch.cuda.is_available()
 
@@ -56,11 +56,11 @@ def main(use_mine=True):
     if use_mine:
         scheduler = None
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
-                         defaults={}, corrected=False, extreme=False)
+                         defaults={}, corrected=False, extreme=True)
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
-        # scheduler = StepLR(optimizer, step_size=1, gamma=gamma)
-        scheduler = None
+        scheduler = StepLR(optimizer, step_size=1, gamma=.7)
+        # scheduler = None
 
     summary(model, (1, 28, 28,))
 

@@ -90,7 +90,7 @@ class LogisticReg(nn.Module):
         return output
 
 
-MNIST_model = MediumModel
+MNIST_model = DenseModel
 
 
 def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True):
