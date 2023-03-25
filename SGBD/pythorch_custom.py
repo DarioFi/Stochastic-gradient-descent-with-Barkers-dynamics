@@ -28,10 +28,14 @@ class SGBD(Optimizer):
         self.online_count = dict()
         self.z = dict()
 
-        if device == "cuda":
+        print(device.type)
+        if device.type == "cuda":
             self.torch_module = torch.cuda
         else:
             self.torch_module = torch
+
+        print(self.torch_module)
+
         for group in self.param_groups:
             for p in group['params']:
                 self.state[p] = dict(mom=torch.zeros_like(p.data))
@@ -53,7 +57,7 @@ class SGBD(Optimizer):
 
                 if self.online_mean[p] is None:
                     self.online_mean[p] = p.grad.data
-                    self.online_var[p] = self.torch_module.Tensor(p.grad.data.shape).fill_(0)
+                    self.online_var[p] = self.torch_module.FloatTensor(p.grad.data.shape).fill_(0)
                 else:
                     self.online_mean[p] *= (1 - beta)
                     self.online_mean[p] += beta * p.grad.data
@@ -63,7 +67,7 @@ class SGBD(Optimizer):
                 self.z[p] = self.z[p].normal_(0, 1)
                 self.z[p] *= 0.1 * self.online_mean[p]
                 self.z[p] += self.online_mean[p]
-                #
+
                 # z = self.torch_module.FloatTensor(p.grad.data.shape).normal_(self.sigma, 0.1 * self.sigma)
 
                 if self.corrected:
@@ -97,7 +101,10 @@ class SGBD(Optimizer):
                 else:
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
+                # print(p.data.max(), p.data.min(), p.data.isnan().sum(), self.z[p].max(), self.z[p].min(), self.z[p].isnan().sum())
                 p.data += (torch.ceil(sampled) * 2 - 1) * self.z[p]
-                p.data *= (1 - weight_decay)
+                # print(p.data.max(), p.data.min(), p.data.isnan().sum(), self.z[p].max(), self.z[p].min(), self.z[p].isnan().sum())
+                # input()
+                # p.data *= (1 - weight_decay)
 
         return .0

@@ -1,4 +1,5 @@
 from __future__ import print_function
+import argparse
 
 import matplotlib.pyplot as plt
 import torch
@@ -17,11 +18,11 @@ def main(use_mine=True):
     log_interval = 30
     batch_size = 256
     test_batch_size = 1000
-    epochs = 8
+    epochs = 16
 
     use_cuda = torch.cuda.is_available()
 
-    # torch.manual_seed(2212)
+    torch.manual_seed(2212)
 
     if use_cuda:
         device = torch.device("cuda")
@@ -32,7 +33,7 @@ def main(use_mine=True):
     test_kwargs = {'batch_size': test_batch_size}
 
     if use_cuda:
-        cuda_kwargs = {'num_workers': 4,
+        cuda_kwargs = {'num_workers': 8,
                        'pin_memory': True,
                        'shuffle': True}
         train_kwargs.update(cuda_kwargs)
@@ -53,10 +54,11 @@ def main(use_mine=True):
     # print(device)
     model = MNIST_model().to(device)
 
+
     if use_mine:
         scheduler = None
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
-                         defaults={}, corrected=False, extreme=True)
+                         defaults={}, corrected=False, extreme=False)
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         scheduler = StepLR(optimizer, step_size=1, gamma=.7)
@@ -66,6 +68,9 @@ def main(use_mine=True):
 
     losses = []
     accuracies = []
+
+    # model = torch.compile(model)
+
 
     for epoch in range(1, epochs + 1):
         train(model, device, train_loader, optimizer, epoch, log_interval, log=True)
