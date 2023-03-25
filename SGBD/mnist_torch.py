@@ -1,5 +1,4 @@
 from __future__ import print_function
-import argparse
 
 import matplotlib.pyplot as plt
 import torch
@@ -22,7 +21,7 @@ def main(use_mine=True):
 
     use_cuda = torch.cuda.is_available()
 
-    torch.manual_seed(2212)
+    # torch.manual_seed(2212)
 
     if use_cuda:
         device = torch.device("cuda")
@@ -59,7 +58,7 @@ def main(use_mine=True):
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
                          defaults={}, corrected=False, extreme=False)
     else:
-        optimizer = optim.Adam(model.parameters())
+        optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         # scheduler = StepLR(optimizer, step_size=1, gamma=gamma)
         scheduler = None
 
@@ -76,11 +75,11 @@ def main(use_mine=True):
         if scheduler is not None:
             scheduler.step()
 
-    for key, value in optimizer.grad_avg.items():
-        plt.plot(value)
-        plt.title(str(key.shape))
-        plt.show()
-        # optimizer.grad_avg[key] = []
+    # for key, value in optimizer.grad_avg.items():
+    #     plt.plot(value)
+    #     plt.title(str(key.shape))
+    #     plt.show()
+    # optimizer.grad_avg[key] = []
 
     print(f"Optimizer: {optimizer.__class__}")
     for i, (l, a) in enumerate(zip(losses, accuracies)):

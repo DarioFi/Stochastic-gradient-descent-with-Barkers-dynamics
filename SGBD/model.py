@@ -29,6 +29,25 @@ class MediumModel(nn.Module):
         return output
 
 
+class DenseModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.ff = nn.Sequential(
+            nn.Linear(28 * 28, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 256),
+            nn.ReLU(),
+            nn.Linear(256, 10))
+
+    def forward(self, x):
+        x = torch.flatten(x, 1)
+        x = self.ff(x)
+        x = F.log_softmax(x, dim=1)
+        return x
+
+
 class LargeModel(nn.Module):
     def __init__(self):
         super().__init__()
@@ -71,7 +90,7 @@ class LogisticReg(nn.Module):
         return output
 
 
-MNIST_model = LogisticReg
+MNIST_model = MediumModel
 
 
 def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True):
