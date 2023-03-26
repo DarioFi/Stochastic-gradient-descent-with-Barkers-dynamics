@@ -28,13 +28,13 @@ class SGBD(Optimizer):
         self.online_count = dict()
         self.z = dict()
 
-        print(device.type)
+        # print(device.type)
         if device.type == "cuda":
             self.torch_module = torch.cuda
         else:
             self.torch_module = torch
 
-        print(self.torch_module)
+        # print(self.torch_module)
 
         for group in self.param_groups:
             for p in group['params']:

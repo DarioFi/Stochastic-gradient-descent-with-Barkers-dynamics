@@ -4,13 +4,14 @@ import torch.nn.functional as F
 
 
 class MediumModel(nn.Module):
-    def __init__(self):
+    def __init__(self, channels=1):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 8, 3, 1)
+        self.conv1 = nn.Conv2d(channels, 8, 3, 1)
         self.conv2 = nn.Conv2d(8, 16, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(9216 // 4, 64)
+        self.fc1 = nn.Linear(3136, 64)
+        # self.fc1 = nn.Linear(28 * 28 * 16, 64)
         self.fc2 = nn.Linear(64, 10)
 
     def forward(self, x):
@@ -49,14 +50,14 @@ class DenseModel(nn.Module):
 
 
 class LargeModel(nn.Module):
-    def __init__(self):
+    def __init__(self, channel=1):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 64, 3, 1)
+        self.conv1 = nn.Conv2d(channel, 64, 3, 1)
         self.conv2 = nn.Conv2d(64, 128, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.25)
         self.dropout3 = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(9216 * 2, 512)
+        self.fc1 = nn.Linear(3136 * 8, 512)
         self.fc2 = nn.Linear(512, 128)
         self.fc3 = nn.Linear(128, 10)
 
@@ -79,9 +80,12 @@ class LargeModel(nn.Module):
 
 
 class LogisticReg(nn.Module):
-    def __init__(self):
+    def __init__(self, cifar=False):
         super().__init__()
-        self.lin = nn.Linear(28 ** 2, 10)
+        if cifar:
+            self.lin = nn.Linear(32 * 32 * 3, 10)
+        else:
+            self.lin = nn.Linear(28 ** 2, 10)
 
     def forward(self, x):
         x = torch.flatten(x, 1)
