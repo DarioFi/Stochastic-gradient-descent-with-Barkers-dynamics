@@ -1,10 +1,10 @@
+import random
 from typing import Iterable, Union, Callable, Optional, Dict, Any, List
 
-import numpy as np
+from utilities import CircularList
+
 import torch
-from matplotlib import pyplot as plt
 from torch.optim import Optimizer
-from torch.optim.swa_utils import SWALR, AveragedModel
 
 from torch import Tensor
 
@@ -14,8 +14,9 @@ _params_t = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
 class SGBD(Optimizer):
     # Init Method:
     def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
-                 replicas=None):
+                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None):
         super().__init__(params, defaults)
+        self.select_model = .05
         self.extreme = extreme
         self.isp = dict()
         self.state = dict()
@@ -38,6 +39,12 @@ class SGBD(Optimizer):
 
         # print(self.torch_module)
 
+        self.ensemble: CircularList = CircularList(ensemble)
+        self.thermolize_epoch = thermolize_epoch
+        self.epochs = epochs
+        self.batch_n = batch_n
+        self.batch_counter = 0
+
         for group in self.param_groups:
             for p in group['params']:
                 self.state[p] = dict(mom=torch.zeros_like(p.data))
@@ -52,8 +59,11 @@ class SGBD(Optimizer):
                 self.z[p] = self.torch_module.FloatTensor(p.data.shape)
 
     # Step Method
-    def step(self, closure: Optional[Callable[[], float]] = ..., weight_decay=.0000005):
+    def step(self, closure: Optional[Callable[[], float]] = ...):
         beta = .1
+
+        self.batch_counter += 1
+
         for group in self.param_groups:
             for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
 
@@ -78,11 +88,7 @@ class SGBD(Optimizer):
                     alfa = self.torch_module.FloatTensor(self.z[p].shape).fill_(1)
                     alfa[m] = 1.702 / ((1.702 ** 2 - tau[m] ** 2 * self.z[p][m] ** 2) ** .5)
 
-                    # probs = 1 / (1 + torch.exp(-p.grad.data * self.n_params * self.z[p] * alfa))
                     probs = 1 / (1 + torch.exp(-p.grad.data * self.z[p] * alfa * self.n_params))
-                    # plt.hist(probs, bins=50)
-                    # plt.show()
-                    # input()
                 else:
                     probs = 1 / (1 + torch.exp(-p.grad.data * self.z[p] * self.n_params))
 
@@ -104,5 +110,15 @@ class SGBD(Optimizer):
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
                 p.data += (torch.ceil(sampled) * 2 - 1) * self.z[p]
+
+        if self.batch_counter >= self.thermolize_epoch * self.batch_n:
+            if random.uniform(0, 1) < self.select_model:
+                model_mod = self.ensemble.get_last()
+                self.ensemble.rotate()
+
+                state_dict = model_mod.state_dict()
+
+                for (name, param), x in zip(state_dict.items(), self.param_groups[0]['params']):
+                    param.copy_(x)
 
         return .0

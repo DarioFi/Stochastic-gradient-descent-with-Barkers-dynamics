@@ -99,10 +99,10 @@ class LogisticReg(nn.Module):
         return output
 
 
-NNet = LogisticReg
+NNet = DenseModel
 
 
-def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True):
+def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True, train_loss=None):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -111,16 +111,21 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
+        if train_loss is not None:
+            train_loss.append(loss.item())
         if batch_idx % log_interval == 0 and log:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                        100. * batch_idx / len(train_loader), loss.item()))
 
 
-def test(model, device, test_loader, log=True):
+def test(model, device, test_loader, log=True, test_ensemble=None):
     model.eval()
     test_loss = 0
     correct = 0
+
+    tl_ens = 0
+    c_ens = 0
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
@@ -129,11 +134,32 @@ def test(model, device, test_loader, log=True):
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
+            if test_ensemble is not None:
+                data, target = data.to(device), target.to(device)
+                output = None
+                for mod in test_ensemble:
+                    if output is None:
+                        output = mod(data)
+                    else:
+                        output += mod(data)
+                output /= len(test_ensemble)
+                tl_ens += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+                pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+                c_ens += pred.eq(target.view_as(pred)).sum().item()
+
+        # tl_ens /= len(test_ensemble)
+        # c_ens /= len(test_ensemble)
+
     test_loss /= len(test_loader.dataset)
+    tl_ens /= len(test_loader.dataset)
 
     if log:
         print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
 
-    return test_loss, 100. * correct / len(test_loader.dataset)
+        print('Ensemble test: Average loss: {:.4f}, Accuracy: {:.1f}/{} ({:.0f}%)'.format(
+            tl_ens, c_ens, len(test_loader.dataset),
+            100. * c_ens / len(test_loader.dataset)))
+
+    return test_loss, 100. * correct / len(test_loader.dataset), tl_ens, 100. * c_ens / len(test_loader.dataset)

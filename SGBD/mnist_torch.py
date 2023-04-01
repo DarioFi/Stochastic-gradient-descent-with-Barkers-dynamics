@@ -1,31 +1,29 @@
 from __future__ import print_function
-import argparse
 import time
 
 import numpy as np
-import torchvision
 
-import matplotlib.pyplot as plt
 import torch
 
 import torch.optim as optim
+import torchvision
 from torch import nn
 from torch.optim.swa_utils import AveragedModel
-from torchvision import datasets
 from torch.optim.lr_scheduler import StepLR
 from torchsummary import summary
+from torchvision.models import ResNet18_Weights
 
 from SGBD.datasets import get_MNIST, get_CIFAR10
 from pythorch_custom import SGBD
 from model import NNet, train, test
 
 
-def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_logs=True):
+def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=4,
+         thermolize_start=1):
     # Training settings
     log_interval = 25
     batch_size = 256
     test_batch_size = 1000
-    epochs = 20
 
     use_cuda = torch.cuda.is_available()
 
@@ -59,6 +57,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         train_loader, test_loader = get_MNIST(train_kwargs, test_kwargs)
     model = NNet(use_cifar10).to(device)
 
+    # model = torchvision.models.resnet18(ResNet18_Weights)
     # model = torchvision.models.resnet18()
     # model = nn.Sequential(
     #     model,
@@ -67,39 +66,53 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     # )
     model = model.to(device)
 
+    ensemble = None
     if use_sgdb:
+        ensemble = [NNet(use_cifar10).to(device) for _ in range(10)]
         scheduler = None
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
-                         defaults={}, corrected=corrected, extreme=extreme)
+                         defaults={}, corrected=corrected, extreme=extreme,
+                         ensemble=ensemble,
+                         thermolize_epoch=thermolize_start, epochs=epochs, batch_n=len(train_loader))
     else:
-        # optimizer = optim.SGD(model.parameters(), lr=1e-3, momentum=.9)
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         scheduler = StepLR(optimizer, step_size=1, gamma=.7)
-        # scheduler = None
 
     if use_cifar10:
         summary(model, (3, 32, 32,))
     else:
         summary(model, (1, 28, 28,))
 
+    train_loss = []
     losses = []
+    losses_ensemble = []
     losses_swa = []
     accuracies = []
     accuracies_swa = []
+    accuracies_ensemble = []
 
     # model = torch.compile(model)
 
     swa_model = AveragedModel(model)
-    swa_start = 8
+    # swa_start = thermolize_start
+    swa_start = 1000
 
     for epoch in range(1, epochs + 1):
         start = time.time()
-        train(model, device, train_loader, optimizer, epoch, log_interval, log=True)
+        temp = []
+        train(model, device, train_loader, optimizer, epoch, log_interval, log=True, train_loss=temp)
+        train_loss.append(sum(temp) / len(temp))
         if epoch % 1 == 0:
             print("STD model:   ", end="")
-            l, a = test(model, device, test_loader, log=True)
+            l, a, le, ae = test(model, device, test_loader, log=True, test_ensemble=ensemble)
             losses.append(l)
             accuracies.append(a)
+            if epoch > thermolize_start:
+                losses_ensemble.append(le)
+                accuracies_ensemble.append(ae)
+            else:
+                losses_ensemble.append(np.nan)
+                accuracies_ensemble.append(np.nan)
         if epoch >= swa_start:
             swa_model.update_parameters(model)
             print(f"SWA model:  ", end="")
@@ -135,9 +148,12 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             "model": str(model.__class__.__name__),
             "test_losses": losses,
             "test_losses_swa": losses_swa,
+            "test_losses_ensemble": losses_ensemble,
             "swa_start": swa_start,
             "test_accuracies": accuracies,
             "test_accuracies_swa": accuracies_swa,
+            "test_accuracies_ensemble": accuracies_ensemble,
+            "train_losses": train_loss,
         }
         import json
         with open("logs.json", 'r') as file:
@@ -148,7 +164,5 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 
 
 if __name__ == '__main__':
-    main(True, corrected=False, extreme=False, dataset="MNIST", write_logs=True)
-    # main(True, corrected=True, extreme=False)
-    # main(True, corrected=True, extreme=True)
-    # main(False, corrected=True, extreme=True)
+    main(False, corrected=True, extreme=False, dataset="CIFAR10", write_logs=True, epochs=30, thermolize_start=3)
+    # main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30)
