@@ -4,6 +4,7 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from torch.optim import Optimizer
+from torch.optim.swa_utils import SWALR, AveragedModel
 
 from torch import Tensor
 
@@ -12,7 +13,8 @@ _params_t = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
 
 class SGBD(Optimizer):
     # Init Method:
-    def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False):
+    def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
+                 replicas=None):
         super().__init__(params, defaults)
         self.extreme = extreme
         self.isp = dict()
@@ -101,10 +103,6 @@ class SGBD(Optimizer):
                 else:
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
-                # print(p.data.max(), p.data.min(), p.data.isnan().sum(), self.z[p].max(), self.z[p].min(), self.z[p].isnan().sum())
                 p.data += (torch.ceil(sampled) * 2 - 1) * self.z[p]
-                # print(p.data.max(), p.data.min(), p.data.isnan().sum(), self.z[p].max(), self.z[p].min(), self.z[p].isnan().sum())
-                # input()
-                # p.data *= (1 - weight_decay)
 
         return .0

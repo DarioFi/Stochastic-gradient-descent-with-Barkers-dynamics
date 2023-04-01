@@ -72,3 +72,8 @@ plt.annotate(r"$\varphi/3$", (r ** (1 / 3) * .5, .1))
 
 plt.plot()
 plt.show()
+
+
+
+def number_of_ways(sum_to_obtain, minimum_coin_to_use):
+    pass

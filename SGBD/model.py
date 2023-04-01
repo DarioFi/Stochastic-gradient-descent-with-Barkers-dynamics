@@ -31,10 +31,14 @@ class MediumModel(nn.Module):
 
 
 class DenseModel(nn.Module):
-    def __init__(self):
+    def __init__(self, cifar=False):
         super().__init__()
+        if cifar:
+            self.lin = nn.Linear(32 * 32 * 3, 256)
+        else:
+            self.lin = nn.Linear(28 * 28, 256)
+
         self.ff = nn.Sequential(
-            nn.Linear(28 * 28, 256),
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
@@ -44,6 +48,7 @@ class DenseModel(nn.Module):
 
     def forward(self, x):
         x = torch.flatten(x, 1)
+        x = self.lin(x)
         x = self.ff(x)
         x = F.log_softmax(x, dim=1)
         return x
@@ -94,7 +99,7 @@ class LogisticReg(nn.Module):
         return output
 
 
-MNIST_model = LargeModel
+NNet = LogisticReg
 
 
 def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True):
@@ -127,7 +132,7 @@ def test(model, device, test_loader, log=True):
     test_loss /= len(test_loader.dataset)
 
     if log:
-        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+        print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
             test_loss, correct, len(test_loader.dataset),
             100. * correct / len(test_loader.dataset)))
 
