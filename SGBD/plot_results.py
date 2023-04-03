@@ -7,7 +7,7 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["dense"]
+allowed_models = ["medium"]
 lower_bound_epochs = 25
 upper_bound_epochs = math.inf
 
@@ -32,14 +32,14 @@ for obs in data:
     ax1.plot(obs["train_losses"], label="Train", color="tab:green")
     ax1.plot(obs["test_losses"], label="Test", color="tab:blue")
     ax1.plot(obs["test_losses_ensemble"], label="ensemble test", color="orange")
-    # ax2.plot(obs["test_accuracies"], label="Vanilla", color="tab:blue")
-    # ax2.plot(obs["test_accuracies_ensemble"], label="ensemble", color="orange")
+    ax2.plot(obs["test_accuracies"], label="Vanilla", color="tab:blue")
+    ax2.plot(obs["test_accuracies_ensemble"], label="ensemble", color="orange")
 
     plt.title(f"{obs['algorithm']} {obs['model']}\nCorrected={obs['corrected']} Extreme={obs['extreme']}")
     ax1.legend()
 
     ax1.set_ylim(0.00001, .5)
-    # ax2.set_ylim(85, 100)
+    ax2.set_ylim(90, 100)
 
     # ax1.set_yscale("log")
     # plt.ylim(bottom=1e-10)

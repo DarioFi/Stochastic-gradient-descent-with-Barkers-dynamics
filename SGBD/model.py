@@ -4,15 +4,21 @@ import torch.nn.functional as F
 
 
 class MediumModel(nn.Module):
-    def __init__(self, channels=1):
+    def __init__(self, use_cifar = False):
         super().__init__()
-        self.conv1 = nn.Conv2d(channels, 8, 3, 1)
-        self.conv2 = nn.Conv2d(8, 16, 3, 1)
+        if use_cifar:
+            self.conv1 = nn.Conv2d(3, 8, 3, 1)
+        else:
+            self.conv1 = nn.Conv2d(1, 8, 3, 1)
+
+        self.conv2 = nn.Conv2d(8, 8, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(3136, 64)
-        # self.fc1 = nn.Linear(28 * 28 * 16, 64)
-        self.fc2 = nn.Linear(64, 10)
+        if use_cifar:
+            self.fc1 = nn.Linear(int(1152/28/28*32*32), 32)
+        else:
+            self.fc1 = nn.Linear(1152, 32)
+        self.fc2 = nn.Linear(32, 10)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -42,8 +48,10 @@ class DenseModel(nn.Module):
             nn.ReLU(),
             nn.Linear(256, 256),
             nn.ReLU(),
+            # nn.Dropout(.25),
             nn.Linear(256, 256),
             nn.ReLU(),
+            # nn.Dropout(.25),
             nn.Linear(256, 10))
 
     def forward(self, x):
@@ -99,8 +107,16 @@ class LogisticReg(nn.Module):
         return output
 
 
-NNet = DenseModel
+NNet = MediumModel
 
+
+# model = torchvision.models.resnet18(ResNet18_Weights)
+# model = torchvision.models.resnet18()
+# model = nn.Sequential(
+#     model,
+#     nn.Linear(1000, 10),
+#     nn.LogSoftmax(dim=1)
+# )
 
 def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True, train_loss=None):
     model.train()

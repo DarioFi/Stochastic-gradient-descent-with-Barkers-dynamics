@@ -32,6 +32,30 @@ class CircularList:
         return self._internal_list
 
 
+def get_kwargs(batch_size, test_batch_size):
+    import torch
+
+    use_cuda = torch.cuda.is_available()
+
+
+    if use_cuda:
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+
+    train_kwargs = {'batch_size': batch_size}
+    test_kwargs = {'batch_size': test_batch_size}
+
+    if use_cuda:
+        cuda_kwargs = {'num_workers': 8,
+                       'pin_memory': True,
+                       'shuffle': True}
+        train_kwargs.update(cuda_kwargs)
+        test_kwargs.update(cuda_kwargs)
+
+    return train_kwargs, test_kwargs, device
+
+
 if __name__ == '__main__':
     cq = CircularList([[1], [2], [3]], 3)
     print(cq.internal_list)

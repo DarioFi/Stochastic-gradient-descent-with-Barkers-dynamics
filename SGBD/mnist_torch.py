@@ -6,44 +6,25 @@ import numpy as np
 import torch
 
 import torch.optim as optim
+
 import torchvision
 from torch import nn
+from torchvision.models import ResNet18_Weights
+
 from torch.optim.swa_utils import AveragedModel
 from torch.optim.lr_scheduler import StepLR
 from torchsummary import summary
-from torchvision.models import ResNet18_Weights
 
 from SGBD.datasets import get_MNIST, get_CIFAR10
-from pythorch_custom import SGBD
+from SGBD.utilities import get_kwargs
+from optimizer import SGBD
 from model import NNet, train, test
+
+torch.manual_seed(2212)
 
 
 def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=4,
          thermolize_start=1):
-    # Training settings
-    log_interval = 25
-    batch_size = 256
-    test_batch_size = 1000
-
-    use_cuda = torch.cuda.is_available()
-
-    torch.manual_seed(2212)
-
-    if use_cuda:
-        device = torch.device("cuda")
-    else:
-        device = torch.device("cpu")
-
-    train_kwargs = {'batch_size': batch_size}
-    test_kwargs = {'batch_size': test_batch_size}
-
-    if use_cuda:
-        cuda_kwargs = {'num_workers': 8,
-                       'pin_memory': True,
-                       'shuffle': True}
-        train_kwargs.update(cuda_kwargs)
-        test_kwargs.update(cuda_kwargs)
-
     if dataset == "MNIST":
         use_cifar10 = False
     elif dataset == "CIFAR10":
@@ -51,20 +32,17 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     else:
         raise Exception("Invalid Dataset")
 
+    train_kwargs, test_kwargs, device = get_kwargs(batch_size=256, test_batch_size=1000)
+
+    model = NNet(use_cifar10).to(device)
+    model = model.to(device)
+
     if use_cifar10:
         train_loader, test_loader = get_CIFAR10(train_kwargs, test_kwargs)
+        summary(model, (3, 32, 32,))
     else:
         train_loader, test_loader = get_MNIST(train_kwargs, test_kwargs)
-    model = NNet(use_cifar10).to(device)
-
-    # model = torchvision.models.resnet18(ResNet18_Weights)
-    # model = torchvision.models.resnet18()
-    # model = nn.Sequential(
-    #     model,
-    #     nn.Linear(1000, 10),
-    #     nn.LogSoftmax(dim=1)
-    # )
-    model = model.to(device)
+        summary(model, (1, 28, 28,))
 
     ensemble = None
     if use_sgdb:
@@ -77,11 +55,6 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         scheduler = StepLR(optimizer, step_size=1, gamma=.7)
-
-    if use_cifar10:
-        summary(model, (3, 32, 32,))
-    else:
-        summary(model, (1, 28, 28,))
 
     train_loss = []
     losses = []
@@ -100,7 +73,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     for epoch in range(1, epochs + 1):
         start = time.time()
         temp = []
-        train(model, device, train_loader, optimizer, epoch, log_interval, log=True, train_loss=temp)
+        train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
         train_loss.append(sum(temp) / len(temp))
         if epoch % 1 == 0:
             print("STD model:   ", end="")
@@ -164,5 +137,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 
 
 if __name__ == '__main__':
-    main(False, corrected=True, extreme=False, dataset="CIFAR10", write_logs=True, epochs=30, thermolize_start=3)
-    # main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30)
+    # main(True, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
+    # main(True, corrected=False, extreme=True, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
+    # main(True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
+    main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30)
