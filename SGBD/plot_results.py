@@ -22,7 +22,6 @@ for obs in data:
     fig, ax1 = plt.subplots()
     ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-
     ax1.set_xlabel("Epochs")
     ax1.set_ylabel("Loss")
 
@@ -43,5 +42,6 @@ for obs in data:
 
     # ax1.set_yscale("log")
     # plt.ylim(bottom=1e-10)
+
     ax1.grid()
     plt.show()

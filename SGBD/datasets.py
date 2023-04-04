@@ -2,7 +2,7 @@ import torch
 from torchvision import datasets, transforms
 
 
-def get_MNIST(train_kwargs, test_kwargs):
+def get_mnist(train_kwargs, test_kwargs):
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
@@ -17,7 +17,7 @@ def get_MNIST(train_kwargs, test_kwargs):
     return train_loader, test_loader
 
 
-def get_CIFAR10(train_kwargs, test_kwargs):
+def get_cifar10(train_kwargs, test_kwargs):
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])

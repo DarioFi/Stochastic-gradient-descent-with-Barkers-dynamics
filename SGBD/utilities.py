@@ -37,7 +37,6 @@ def get_kwargs(batch_size, test_batch_size):
 
     use_cuda = torch.cuda.is_available()
 
-
     if use_cuda:
         device = torch.device("cuda")
     else:

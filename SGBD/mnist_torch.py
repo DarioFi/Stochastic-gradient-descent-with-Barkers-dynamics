@@ -7,15 +7,15 @@ import torch
 
 import torch.optim as optim
 
-import torchvision
-from torch import nn
-from torchvision.models import ResNet18_Weights
+# import torchvision
+# from torch import nn
+# from torchvision.models import ResNet18_Weights
 
 from torch.optim.swa_utils import AveragedModel
 from torch.optim.lr_scheduler import StepLR
 from torchsummary import summary
 
-from SGBD.datasets import get_MNIST, get_CIFAR10
+from SGBD.datasets import get_mnist, get_cifar10
 from SGBD.utilities import get_kwargs
 from optimizer import SGBD
 from model import NNet, train, test
@@ -38,10 +38,10 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     model = model.to(device)
 
     if use_cifar10:
-        train_loader, test_loader = get_CIFAR10(train_kwargs, test_kwargs)
+        train_loader, test_loader = get_cifar10(train_kwargs, test_kwargs)
         summary(model, (3, 32, 32,))
     else:
-        train_loader, test_loader = get_MNIST(train_kwargs, test_kwargs)
+        train_loader, test_loader = get_mnist(train_kwargs, test_kwargs)
         summary(model, (1, 28, 28,))
 
     ensemble = None
@@ -64,7 +64,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     accuracies_swa = []
     accuracies_ensemble = []
 
-    # model = torch.compile(model)
+    model = torch.compile(model)
 
     swa_model = AveragedModel(model)
     # swa_start = thermolize_start
@@ -86,6 +86,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             else:
                 losses_ensemble.append(np.nan)
                 accuracies_ensemble.append(np.nan)
+
         if epoch >= swa_start:
             swa_model.update_parameters(model)
             print(f"SWA model:  ", end="")
@@ -100,12 +101,6 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 
         if scheduler is not None:
             scheduler.step()
-
-    # for key, value in optimizer.grad_avg.items():
-    #     plt.plot(value)
-    #     plt.title(str(key.shape))
-    #     plt.show()
-    # optimizer.grad_avg[key] = []
 
     print(f"Optimizer: {optimizer.__class__}")
     print(f"Parameters: {corrected=} - {extreme=}")
@@ -137,7 +132,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 
 
 if __name__ == '__main__':
-    # main(True, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
+    main(True, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
     # main(True, corrected=False, extreme=True, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
     # main(True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
-    main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30)
+    # main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30)

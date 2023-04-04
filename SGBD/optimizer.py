@@ -16,34 +16,35 @@ class SGBD(Optimizer):
     def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
                  ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None):
         super().__init__(params, defaults)
-        self.select_model = .05
-        self.extreme = extreme
+
+        # used for recording data
         self.isp = dict()
-        self.state = dict()
+        self.probabilities: Dict[:List] = dict()
+
+        # parameters
         self.tau = dict()
         self.sigma = .01
-        self.probabilities: Dict[:List] = dict()
         self.corrected = corrected
-        self.n_params = n_params ** 1
-
-        self.online_mean = dict()
-        self.online_var = dict()
-        self.online_count = dict()
-        self.z = dict()
-
-        # print(device.type)
-        if device.type == "cuda":
-            self.torch_module = torch.cuda
-        else:
-            self.torch_module = torch
-
-        # print(self.torch_module)
-
-        self.ensemble: CircularList = CircularList(ensemble)
+        self.n_params = n_params
+        self.select_model = .05
+        self.extreme = extreme
         self.thermolize_epoch = thermolize_epoch
         self.epochs = epochs
         self.batch_n = batch_n
         self.batch_counter = 0
+
+        # state vars
+        self.state = dict()
+        self.online_mean = dict()
+        self.online_var = dict()
+        self.online_count = dict()
+        self.z = dict()
+        self.ensemble: CircularList = CircularList(ensemble)
+
+        if device.type == "cuda":
+            self.torch_module = torch.cuda
+        else:
+            self.torch_module = torch
 
         for group in self.param_groups:
             for p in group['params']:
@@ -61,26 +62,25 @@ class SGBD(Optimizer):
     # Step Method
     def step(self, closure: Optional[Callable[[], float]] = ...):
         beta = .1
-
         self.batch_counter += 1
 
         for group in self.param_groups:
             for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
 
+                # region Online estimations
                 if self.online_mean[p] is None:
                     self.online_mean[p] = p.grad.data
                     self.online_var[p] = self.torch_module.FloatTensor(p.grad.data.shape).fill_(0)
                 else:
                     self.online_mean[p] *= (1 - beta)
                     self.online_mean[p] += beta * p.grad.data
-                    self.online_var[p] = beta * self.online_var[p] + (1 - beta) * (
-                            p.grad.data - self.online_mean[p]) ** 2
+                    self.online_var[p] *= (1 - beta)
+                    self.online_var[p] += beta * (p.grad.data - self.online_mean[p]) ** 2
+                # endregion
 
                 self.z[p] = self.z[p].normal_(0, 1)
                 self.z[p] *= 0.1 * self.online_mean[p]
                 self.z[p] += self.online_mean[p]
-
-                # z = self.torch_module.FloatTensor(p.grad.data.shape).normal_(self.sigma, 0.1 * self.sigma)
 
                 if self.corrected:
                     tau = torch.sqrt(self.online_var[p] * self.n_params)
@@ -94,6 +94,7 @@ class SGBD(Optimizer):
 
                 self.isp[p] += 1
 
+                # region Plot probabilities
                 # if self.isp[p] > 10 and self.probabilities[p] is None:
                 #     self.probabilities[p] = list(probs.flatten())
                 # if self.isp[p] == 20:
@@ -103,6 +104,7 @@ class SGBD(Optimizer):
                 #     plt.show()
                 # elif self.probabilities[p] is not None:
                 #     self.probabilities[p].extend(probs.flatten())
+                # endregion
 
                 if self.extreme:
                     sampled = (1 - probs) * 2 - 1
@@ -111,6 +113,7 @@ class SGBD(Optimizer):
 
                 p.data += (torch.ceil(sampled) * 2 - 1) * self.z[p]
 
+        # region Replace old models in ensemble
         if self.batch_counter >= self.thermolize_epoch * self.batch_n:
             if random.uniform(0, 1) < self.select_model:
                 model_mod = self.ensemble.get_last()
@@ -120,5 +123,6 @@ class SGBD(Optimizer):
 
                 for (name, param), x in zip(state_dict.items(), self.param_groups[0]['params']):
                     param.copy_(x)
+        # endregion
 
         return .0
