@@ -107,7 +107,7 @@ class LogisticReg(nn.Module):
         return output
 
 
-NNet = MediumModel
+NNet = LogisticReg
 
 
 # model = torchvision.models.resnet18(ResNet18_Weights)

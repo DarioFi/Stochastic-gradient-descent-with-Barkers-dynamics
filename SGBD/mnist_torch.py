@@ -1,4 +1,6 @@
 from __future__ import print_function
+
+import platform
 import time
 
 import numpy as np
@@ -64,7 +66,10 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     accuracies_swa = []
     accuracies_ensemble = []
 
-    model = torch.compile(model)
+    model_name = str(model.__class__.__name__)  # If done after compile gives wrong name
+
+    if "Linux" in platform.platform():
+        model = torch.compile(model)
 
     swa_model = AveragedModel(model)
     # swa_start = thermolize_start
@@ -87,16 +92,16 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
                 losses_ensemble.append(np.nan)
                 accuracies_ensemble.append(np.nan)
 
-        if epoch >= swa_start:
-            swa_model.update_parameters(model)
-            print(f"SWA model:  ", end="")
-            l, a = test(swa_model, device, test_loader, log=True)
-            losses_swa.append(l)
-            accuracies_swa.append(a)
-        else:
-            losses_swa.append(np.nan)
-            accuracies_swa.append(np.nan)
-
+        # if epoch >= swa_start:
+        #     swa_model.update_parameters(model)
+        #     print(f"SWA model:  ", end="")
+        #     l, a = test(swa_model, device, test_loader, log=True)
+        #     losses_swa.append(l)
+        #     accuracies_swa.append(a)
+        # else:
+        #     losses_swa.append(np.nan)
+        #     accuracies_swa.append(np.nan)
+        #
         print(f"{epoch=} - elapsed time: {round(time.time() - start, 1)}s\n")
 
         if scheduler is not None:
@@ -113,7 +118,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             "corrected": corrected,
             "extreme": extreme,
             "algorithm": str(optimizer.__class__.__name__),
-            "model": str(model.__class__.__name__),
+            "model": model_name,
             "test_losses": losses,
             "test_losses_swa": losses_swa,
             "test_losses_ensemble": losses_ensemble,
@@ -131,8 +136,9 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             json.dump(j, file, indent=4)
 
 
+EPOCHS = 20
 if __name__ == '__main__':
-    main(True, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
-    # main(True, corrected=False, extreme=True, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
-    # main(True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=30, thermolize_start=1)
-    # main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=30)
+    main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=EPOCHS)
+    main(True, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=EPOCHS, thermolize_start=1)
+    main(True, corrected=False, extreme=True, dataset="MNIST", write_logs=True, epochs=EPOCHS, thermolize_start=1)
+    main(True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=EPOCHS, thermolize_start=1)
