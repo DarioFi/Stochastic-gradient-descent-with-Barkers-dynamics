@@ -7,18 +7,18 @@ class MediumModel(nn.Module):
     def __init__(self, use_cifar=False):
         super().__init__()
         if use_cifar:
-            self.conv1 = nn.Conv2d(3, 8, 3, 1)
+            self.conv1 = nn.Conv2d(3, 16, 3, 1)
         else:
-            self.conv1 = nn.Conv2d(1, 8, 3, 1)
+            self.conv1 = nn.Conv2d(1, 16, 3, 1)
 
-        self.conv2 = nn.Conv2d(8, 8, 3, 1)
+        self.conv2 = nn.Conv2d(16, 16, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.5)
         if use_cifar:
-            self.fc1 = nn.Linear(int(1152 / 28 / 28 * 32 * 32), 32)
+            self.fc1 = nn.Linear(1568 * 2, 64)
         else:
-            self.fc1 = nn.Linear(1152, 32)
-        self.fc2 = nn.Linear(32, 10)
+            self.fc1 = nn.Linear(1152 * 2, 64)
+        self.fc2 = nn.Linear(64, 10)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -107,7 +107,7 @@ class LogisticReg(nn.Module):
         return output
 
 
-NNet = LogisticReg
+NNet = MediumModel
 
 
 # model = torchvision.models.resnet18(ResNet18_Weights)
@@ -142,9 +142,11 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
 
     tl_ens = 0
     c_ens = 0
-    with torch.no_grad():
+    # with torch.no_grad():
+    for _ in range(1):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
+            # model.eval()
             output = model(data)
             test_loss += f.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability

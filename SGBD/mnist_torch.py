@@ -39,6 +39,8 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     model = NNet(use_cifar10).to(device)
     model = model.to(device)
 
+    model_name = str(model.__class__.__name__)  # If done after compile gives wrong name
+
     if use_cifar10:
         train_loader, test_loader = get_cifar10(train_kwargs, test_kwargs)
         summary(model, (3, 32, 32,))
@@ -46,9 +48,14 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         train_loader, test_loader = get_mnist(train_kwargs, test_kwargs)
         summary(model, (1, 28, 28,))
 
+    if "Linux" in platform.platform():
+        model = torch.compile(model)
+
     ensemble = None
     if use_sgdb:
         ensemble = [NNet(use_cifar10).to(device) for _ in range(10)]
+        if "Linux" in platform.platform():
+            ensemble = [torch.compile(x) for x in ensemble]
         scheduler = None
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
                          defaults={}, corrected=corrected, extreme=extreme,
@@ -66,12 +73,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     accuracies_swa = []
     accuracies_ensemble = []
 
-    model_name = str(model.__class__.__name__)  # If done after compile gives wrong name
-
-    if "Linux" in platform.platform():
-        model = torch.compile(model)
-
-    swa_model = AveragedModel(model)
+    # swa_model = AveragedModel(model)
     # swa_start = thermolize_start
     swa_start = 1000
 
@@ -117,6 +119,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             "epochs": epochs,
             "corrected": corrected,
             "extreme": extreme,
+            "dataset": dataset,
             "algorithm": str(optimizer.__class__.__name__),
             "model": model_name,
             "test_losses": losses,
@@ -137,8 +140,12 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 
 
 EPOCHS = 20
+DS = "CIFAR10"
 if __name__ == '__main__':
-    main(False, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=EPOCHS)
-    main(True, corrected=True, extreme=False, dataset="MNIST", write_logs=True, epochs=EPOCHS, thermolize_start=1)
-    main(True, corrected=False, extreme=True, dataset="MNIST", write_logs=True, epochs=EPOCHS, thermolize_start=1)
-    main(True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=EPOCHS, thermolize_start=1)
+    # main(False, corrected=True, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS)
+    main(True, corrected=True, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS, thermolize_start=1)
+    # main(True, co1rrected=False, extreme=True, dataset=DS, write_logs=True, epochs=EPOCHS, thermolize_start=1)
+    # main(True, corrected=False, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS, thermolize_start=0)
+
+
+# Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
