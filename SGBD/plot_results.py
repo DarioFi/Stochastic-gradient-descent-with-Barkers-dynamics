@@ -8,12 +8,17 @@ with open("logs.json", "r") as file:
     data = json.load(file)
 
 allowed_models = ["medium"]
-allowed_algs = ["*"]
+allowed_algs = ["sgbd"]
 # allowed_algs = ["adam"]
 lower_bound_epochs = 15
 upper_bound_epochs = math.inf
+# corrected = (True, False)
+corrected = (True,)
 
 for obs in data:
+
+    if not obs['corrected'] in corrected:
+        continue
 
     if any(x not in obs["model"].lower() for x in allowed_models):
         continue
@@ -33,7 +38,7 @@ for obs in data:
     ax2 = ax1.twinx()
     ax2.set_ylabel("Accuracy")
 
-    # ax1.plot(obs["train_losses"], label="Train", color="red")
+    ax1.plot(obs["train_losses"], label="Train", color="red")
 
     ax1.plot(obs["test_losses"], label="Test loss", color="tab:blue")
     ax1.plot(obs["test_losses_ensemble"], color="tab:green", label="Loss ensemble")
@@ -44,7 +49,7 @@ for obs in data:
     ax1.legend()
     ax2.legend(loc="upper left")
 
-    ax1.set_ylim(0.7, 2)
+    ax1.set_ylim(0, 3)
     ax2.set_ylim(0, 100)
 
     # ax1.set_yscale("log")
@@ -52,4 +57,3 @@ for obs in data:
 
     ax1.grid()
     plt.show()
-

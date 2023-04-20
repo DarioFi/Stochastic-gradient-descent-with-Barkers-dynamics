@@ -1,6 +1,8 @@
 import random
 from typing import Iterable, Union, Callable, Optional, Dict, Any, List
 
+from matplotlib import pyplot as plt
+
 from utilities import CircularList
 
 import torch
@@ -14,7 +16,7 @@ _params_t = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
 class SGBD(Optimizer):
     # Init Method:
     def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
-                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None):
+                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None):
         super().__init__(params, defaults)
 
         # used for recording data
@@ -32,6 +34,8 @@ class SGBD(Optimizer):
         self.epochs = epochs
         self.batch_n = batch_n
         self.batch_counter = 0
+
+        self.step_size = step_size
 
         # state vars
         self.state = dict()
@@ -79,8 +83,15 @@ class SGBD(Optimizer):
                 # endregion
 
                 self.z[p] = self.z[p].normal_(0, 1)
-                self.z[p] *= 0.1 * self.online_mean[p]
-                self.z[p] += self.online_mean[p]
+
+                if self.step_size is None:
+                    self.z[p] *= 0.1 * self.online_mean[p]
+                    self.z[p] += self.online_mean[p]
+                else:
+                    # self.z[p] *= self.step_size / sum(p.shape)
+                    # self.z[p] += self.step_size / sum(p.shape)
+                    self.z[p] *= self.step_size / self.n_params
+                    self.z[p] += self.step_size / self.n_params
 
                 if self.corrected:
                     tau = torch.sqrt(self.online_var[p] * self.n_params)
@@ -92,19 +103,28 @@ class SGBD(Optimizer):
                 else:
                     probs = 1 / (1 + torch.exp(-p.grad.data * self.z[p] * self.n_params))
 
-                self.isp[p] += 1
-
+                # self.isp[p] += 1
+                #
                 # region Plot probabilities
-                # if self.isp[p] > 10 and self.probabilities[p] is None:
-                #     self.probabilities[p] = list(probs.flatten())
-                # if self.isp[p] == 20:
-                #     plt.hist(self.probabilities[p], bins=50)
-                #     plt.title(f"Probability distribution using param: {p.shape}")
-                #     plt.xlim(0, 1)
-                #     plt.show()
-                # elif self.probabilities[p] is not None:
-                #     self.probabilities[p].extend(probs.flatten())
+                # print(self.batch_n, self.batch_counter)
+                # print(self.batch_counter // self.batch_n)
+                # print(self.isp[p])
+                if LOG_PROB:
+                    if self.batch_counter / self.batch_n >= 1 and self.probabilities[p] is None:
+                        self.probabilities[p] = list(probs.flatten())
+                        self.isp[p] = True
+                    if self.batch_counter // self.batch_n == 2 and self.isp[p] is True:
+                        plt.hist(self.probabilities[p], bins=50)
+                        plt.title(f"Probability distribution using param: {p.shape}")
+                        plt.xlim(0, 1)
+                        plt.show()
+                        self.isp[p] = False
+                    elif self.probabilities[p] is not None and self.isp[p] is True:
+                        self.probabilities[p].extend(probs.flatten())
                 # endregion
+
+                if self.batch_counter // self.batch_n == 3:
+                    return 0
 
                 if self.extreme:
                     sampled = (1 - probs) * 2 - 1
@@ -126,3 +146,6 @@ class SGBD(Optimizer):
         # endregion
 
         return .0
+
+
+LOG_PROB = False

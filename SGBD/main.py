@@ -26,7 +26,7 @@ torch.manual_seed(2212)
 
 
 def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=4,
-         thermolize_start=1):
+         thermolize_start=1, step_size=None):
     if dataset == "MNIST":
         use_cifar10 = False
     elif dataset == "CIFAR10":
@@ -52,14 +52,15 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         model = torch.compile(model)
 
     ensemble = None
+    ensemble_size = 1
     if use_sgdb:
-        ensemble = [NNet(use_cifar10).to(device) for _ in range(10)]
+        ensemble = [NNet(use_cifar10).to(device) for _ in range(ensemble_size)]
         if "Linux" in platform.platform():
             ensemble = [torch.compile(x) for x in ensemble]
         scheduler = None
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
                          defaults={}, corrected=corrected, extreme=extreme,
-                         ensemble=ensemble,
+                         ensemble=ensemble, step_size=step_size,
                          thermolize_epoch=thermolize_start, epochs=epochs, batch_n=len(train_loader))
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
@@ -120,6 +121,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             "corrected": corrected,
             "extreme": extreme,
             "dataset": dataset,
+            # "algorithm": str(optimizer.__class__.__name__) + " fixed step",
             "algorithm": str(optimizer.__class__.__name__),
             "model": model_name,
             "test_losses": losses,
@@ -139,13 +141,25 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             json.dump(j, file, indent=4)
 
 
-EPOCHS = 20
+EPOCHS = 5
 DS = "CIFAR10"
 if __name__ == '__main__':
-    # main(False, corrected=True, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS)
-    main(True, corrected=True, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS, thermolize_start=1)
-    # main(True, co1rrected=False, extreme=True, dataset=DS, write_logs=True, epochs=EPOCHS, thermolize_start=1)
-    # main(True, corrected=False, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS, thermolize_start=0)
+    main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
 
+    # main(False, corrected=True, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS)
+    # main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
+    # main(True, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
+    # main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
 
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
+
+
+# questions:
+
+# Added correction for curse of dimensionality / temperature
+# online mean and variance
+# fixed step size / using online means
+# why extreme is not working
+# acceptance rate / accepting probabilities distribution
+# hyperparameter tuning
+# actual things to write in the thesis
