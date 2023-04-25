@@ -49,7 +49,7 @@ for obs in data:
     ax1.legend()
     ax2.legend(loc="upper left")
 
-    ax1.set_ylim(0, 3)
+    ax1.set_ylim(0.8, 2)
     ax2.set_ylim(0, 100)
 
     # ax1.set_yscale("log")

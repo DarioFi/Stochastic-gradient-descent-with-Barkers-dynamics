@@ -1,3 +1,4 @@
+import math
 import random
 from typing import Iterable, Union, Callable, Optional, Dict, Any, List
 
@@ -43,6 +44,14 @@ class SGBD(Optimizer):
         self.online_var = dict()
         self.online_count = dict()
         self.z = dict()
+
+        # adaptive size correction for temperature
+        self.log_temp = dict()
+        self.gamma_base = 1
+        self.gamma_rate = 0.1
+        self.gamma = self.gamma_base
+        self.alfa_target = 1 / 4
+
         self.ensemble: CircularList = CircularList(ensemble)
 
         if device.type == "cuda":
@@ -56,6 +65,8 @@ class SGBD(Optimizer):
                 self.tau[p] = 0
                 self.isp[p] = False
                 self.probabilities[p]: List = None
+
+                self.log_temp[p] = 1
 
                 self.online_mean[p] = None
                 self.online_var[p] = None
@@ -79,29 +90,51 @@ class SGBD(Optimizer):
                     self.online_mean[p] *= (1 - beta)
                     self.online_mean[p] += beta * p.grad.data
                     self.online_var[p] *= (1 - beta)
-                    self.online_var[p] += beta * (p.grad.data - self.online_mean[p]) ** 2
+                    self.online_var[p] += beta * (p.grad.data - self.online_mean[p]) ** 2 * self.batch_n
+
                 # endregion
 
                 self.z[p] = self.z[p].normal_(0, 1)
 
                 if self.step_size is None:
-                    self.z[p] *= 0.1 * self.online_mean[p]
-                    self.z[p] += self.online_mean[p]
+                    if self.batch_counter >= 0:
+                        self.z[p] *= 0.1 * self.online_mean[p]
+                        self.z[p] += self.online_mean[p]
+                    else:
+                        # print(self.online_var[p].mean(), (self.online_mean[p]**2).mean())
+                        self.z[p] *= 0.1 * torch.sqrt(self.online_var[p])
+                        self.z[p] += torch.sqrt(self.online_var[p])
+                        # self.z[p] *= 0.1 * self.online_var[p]
+                        # self.z[p] += self.online_var[p]
                 else:
                     # self.z[p] *= self.step_size / sum(p.shape)
                     # self.z[p] += self.step_size / sum(p.shape)
                     self.z[p] *= self.step_size / self.n_params
                     self.z[p] += self.step_size / self.n_params
 
+                # t = math.exp(self.log_temp[p])
+                # t = self.log_temp[p]
+                t= self.n_params
                 if self.corrected:
-                    tau = torch.sqrt(self.online_var[p] * self.n_params)
+                    # tau = torch.sqrt(self.online_var[p] * self.n_params)
+                    tau = torch.sqrt(self.online_var[p])
                     m = abs(tau * self.z[p]) < 1.702
-                    alfa = self.torch_module.FloatTensor(self.z[p].shape).fill_(1)
-                    alfa[m] = 1.702 / ((1.702 ** 2 - tau[m] ** 2 * self.z[p][m] ** 2) ** .5)
+                    alfa_c = self.torch_module.FloatTensor(self.z[p].shape).fill_(1)
+                    alfa_c[m] = 1.702 / ((1.702 ** 2 - tau[m] ** 2 * self.z[p][m] ** 2) ** .5)
 
-                    probs = 1 / (1 + torch.exp(-p.grad.data * self.z[p] * alfa * self.n_params))
+                    probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p] * alfa_c))
                 else:
-                    probs = 1 / (1 + torch.exp(-p.grad.data * self.z[p] * self.n_params))
+                    probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p]))
+
+                # region Temperature correction
+                alfa = abs(probs - 0.5).mean()
+                self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
+                self.gamma = self.gamma_base / (self.batch_counter ** self.gamma_rate)
+                if str(self.log_temp[p]) == "nan" or self.batch_counter % 64 == 0.5:
+                    print("ayo")
+                    print(self.batch_counter, self.gamma, alfa, self.log_temp[p])
+
+                # endregion
 
                 # self.isp[p] += 1
                 #
@@ -131,7 +164,9 @@ class SGBD(Optimizer):
                 else:
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
-                p.data += (torch.ceil(sampled) * 2 - 1) * self.z[p]
+                tempo = (torch.ceil(sampled) * 2 - 1) * self.z[p]
+                # print(p.data)
+                p.data = p.data + tempo
 
         # region Replace old models in ensemble
         if self.batch_counter >= self.thermolize_epoch * self.batch_n:

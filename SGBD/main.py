@@ -141,7 +141,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
             json.dump(j, file, indent=4)
 
 
-EPOCHS = 5
+EPOCHS = 20
 DS = "CIFAR10"
 if __name__ == '__main__':
     main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
