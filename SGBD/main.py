@@ -6,6 +6,8 @@ import time
 import numpy as np
 
 import torch
+# torch._dynamo.config.verbose=True
+
 
 import torch.optim as optim
 
@@ -43,13 +45,13 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 
     if use_cifar10:
         train_loader, test_loader = get_cifar10(train_kwargs, test_kwargs)
-        summary(model, (3, 32, 32,))
+        # summary(model, (3, 32, 32,))
     else:
         train_loader, test_loader = get_mnist(train_kwargs, test_kwargs)
-        summary(model, (1, 28, 28,))
+        # summary(model, (1, 28, 28,))
 
-    if "Linux" in platform.platform():
-        model = torch.compile(model)
+    # if "Linux" in platform.platform():
+    #     model = torch.compile(model)
 
     ensemble = None
     ensemble_size = 1
@@ -58,6 +60,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         if "Linux" in platform.platform():
             ensemble = [torch.compile(x) for x in ensemble]
         scheduler = None
+        print("N parameters:    ", sum(p.numel() for p in model.parameters()))
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
                          defaults={}, corrected=corrected, extreme=extreme,
                          ensemble=ensemble, step_size=step_size,

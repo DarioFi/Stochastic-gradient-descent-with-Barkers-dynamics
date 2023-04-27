@@ -107,7 +107,29 @@ class LogisticReg(nn.Module):
         return output
 
 
-NNet = MediumModel
+class TransformerModel(nn.Module):
+    def __init__(self, cifar=False, d_model=64, nhead=4, num_layers=2, output_size=10):
+        super(TransformerModel, self).__init__()
+        if cifar:
+            self.embedding = nn.Linear(32 * 32 * 3, d_model)
+        else:
+            self.embedding = nn.Linear(28 ** 2, d_model)
+        self.transformer_encoder_layer = nn.TransformerEncoderLayer(d_model, nhead)
+        self.transformer_encoder = nn.TransformerEncoder(self.transformer_encoder_layer, num_layers)
+        self.fc = nn.Linear(d_model, output_size)
+
+    def forward(self, x):
+        x = torch.flatten(x, 1)
+        x = self.embedding(x)
+        # x = x.transpose(0, 1)
+        x = self.transformer_encoder(x)
+        # x = x.transpose(0, 1)
+        x = self.fc(x)
+        output = f.log_softmax(x, dim=1)
+        return output
+
+
+NNet = TransformerModel
 
 
 # model = torchvision.models.resnet18(ResNet18_Weights)
@@ -121,6 +143,7 @@ NNet = MediumModel
 def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True, train_loss=None):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
+
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)

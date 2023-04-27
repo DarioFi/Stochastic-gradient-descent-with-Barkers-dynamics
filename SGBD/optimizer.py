@@ -80,8 +80,10 @@ class SGBD(Optimizer):
         self.batch_counter += 1
 
         for group in self.param_groups:
-            for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
 
+            for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
+                if p.grad is None:
+                    continue
                 # region Online estimations
                 if self.online_mean[p] is None:
                     self.online_mean[p] = p.grad.data
