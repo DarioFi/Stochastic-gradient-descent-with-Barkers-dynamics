@@ -10,6 +10,7 @@ import torch
 
 
 import torch.optim as optim
+from matplotlib import pyplot as plt
 
 # import torchvision
 # from torch import nn
@@ -45,19 +46,19 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 
     if use_cifar10:
         train_loader, test_loader = get_cifar10(train_kwargs, test_kwargs)
-        # summary(model, (3, 32, 32,))
+        summary(model, (3, 32, 32,))
     else:
         train_loader, test_loader = get_mnist(train_kwargs, test_kwargs)
-        # summary(model, (1, 28, 28,))
+        summary(model, (1, 28, 28,))
 
-    # if "Linux" in platform.platform():
-    #     model = torch.compile(model)
+    if "Linux" in platform.platform() and compile_model is True:
+        model = torch.compile(model)
 
     ensemble = None
-    ensemble_size = 1
+    ensemble_size = 0
     if use_sgdb:
         ensemble = [NNet(use_cifar10).to(device) for _ in range(ensemble_size)]
-        if "Linux" in platform.platform():
+        if "Linux" in platform.platform() and compile_model is True:
             ensemble = [torch.compile(x) for x in ensemble]
         scheduler = None
         print("N parameters:    ", sum(p.numel() for p in model.parameters()))
@@ -143,16 +144,32 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         with open("logs.json", "w") as file:
             json.dump(j, file, indent=4)
 
+    hist = optimizer.temperature_history
 
-EPOCHS = 20
+    fig, ax1 = plt.subplots()
+
+    plt.title(f"CNN trained on CIFAR10 with rate = {optimizer.gamma_rate}")
+    # plt.title("Temperatures")
+    for data in hist.values():
+        ax1.plot(data[0], data[1])
+
+    ax2 = ax1.twinx()
+    ax1.set_yscale('log')
+    ax2.plot(optimizer.gamma_history, label="stepsize")
+    ax1.grid()
+    ax1.set_ylabel("Temperatures")
+    ax1.set_xlabel(f"Steps (epoch = {len(train_loader)})")
+    ax2.legend()
+    plt.show()
+    print(list(len(x) for x in hist.values()))
+
+
+compile_model = True
+
+EPOCHS = 8
 DS = "CIFAR10"
 if __name__ == '__main__':
-    main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
-
-    # main(False, corrected=True, extreme=False, dataset=DS, write_logs=True, epochs=EPOCHS)
-    # main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
-    # main(True, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
-    # main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
+    main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
 
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
 

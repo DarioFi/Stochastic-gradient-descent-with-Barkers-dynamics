@@ -1,9 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as f
+import torchvision
+from torchvision.models import ResNet18_Weights
 
 
-class MediumModel(nn.Module):
+class   MediumModel(nn.Module):
     def __init__(self, use_cifar=False):
         super().__init__()
         if use_cifar:
@@ -63,9 +65,13 @@ class DenseModel(nn.Module):
 
 
 class LargeModel(nn.Module):
-    def __init__(self, channel=1):
+    def __init__(self, use_cifar=False):
         super().__init__()
-        self.conv1 = nn.Conv2d(channel, 64, 3, 1)
+        if use_cifar:
+            self.conv1 = nn.Conv2d(3, 64, 3, 1)
+        else:
+            self.conv1 = nn.Conv2d(1, 64, 3, 1)
+
         self.conv2 = nn.Conv2d(64, 128, 3, 1)
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.25)
@@ -129,16 +135,31 @@ class TransformerModel(nn.Module):
         return output
 
 
-NNet = TransformerModel
+from torchvision.models.resnet import ResNet, BasicBlock
 
 
-# model = torchvision.models.resnet18(ResNet18_Weights)
-# model = torchvision.models.resnet18()
-# model = nn.Sequential(
-#     model,
-#     nn.Linear(1000, 10),
-#     nn.LogSoftmax(dim=1)
-# )
+class MnistResNet(ResNet):
+    def __init__(self, use_cifar=False):
+        super(MnistResNet, self).__init__(BasicBlock, [4, 4, 2, 2], num_classes=10)
+        if use_cifar is False:
+            self.conv1 = torch.nn.Conv2d(1, 64,
+                                         kernel_size=(7, 7),
+                                         stride=(2, 2),
+                                         padding=(3, 3), bias=False)
+        else:
+            self.conv1 = torch.nn.Conv2d(3, 64,
+                                         kernel_size=(7, 7),
+                                         stride=(2, 2),
+                                         padding=(3, 3), bias=False)
+
+    def forward(self, x):
+        x = super().forward(x)
+        output = f.log_softmax(x, dim=1)
+        return output
+
+
+NNet = MediumModel
+
 
 def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True, train_loss=None):
     model.train()
@@ -175,7 +196,7 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-            if test_ensemble is not None:
+            if test_ensemble is not None and len(test_ensemble) > 0:
                 data, target = data.to(device), target.to(device)
                 output = None
                 for mod in test_ensemble:

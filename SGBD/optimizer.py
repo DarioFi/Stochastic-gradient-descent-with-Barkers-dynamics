@@ -21,6 +21,7 @@ class SGBD(Optimizer):
         super().__init__(params, defaults)
 
         # used for recording data
+        self.gamma_history = []
         self.isp = dict()
         self.probabilities: Dict[:List] = dict()
 
@@ -48,9 +49,10 @@ class SGBD(Optimizer):
         # adaptive size correction for temperature
         self.log_temp = dict()
         self.gamma_base = 1
-        self.gamma_rate = 0.1
+        self.gamma_rate = 0.3
         self.gamma = self.gamma_base
         self.alfa_target = 1 / 4
+        self.temperature_history = dict()
 
         self.ensemble: CircularList = CircularList(ensemble)
 
@@ -74,16 +76,24 @@ class SGBD(Optimizer):
 
                 self.z[p] = self.torch_module.FloatTensor(p.data.shape)
 
+                self.temperature_history[p] = [[], []]
+
     # Step Method
     def step(self, closure: Optional[Callable[[], float]] = ...):
         beta = .1
         self.batch_counter += 1
 
+        # gamma does not depend on the layer
+        self.gamma = self.gamma_base / (self.batch_counter ** self.gamma_rate)
+        self.gamma_history.append(self.gamma)
+        # if self.batch_counter % 97 == 0:
+        #     print(list(len(x) for x in self.temperature_history.values()))
+
         for group in self.param_groups:
 
             for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
-                if p.grad is None:
-                    continue
+                # if p.grad is None:
+                #     continue
                 # region Online estimations
                 if self.online_mean[p] is None:
                     self.online_mean[p] = p.grad.data
@@ -101,6 +111,7 @@ class SGBD(Optimizer):
                 if self.step_size is None:
                     if self.batch_counter >= 0:
                         self.z[p] *= 0.1 * self.online_mean[p]
+                        # self.z[p] *= (self.online_var[p])
                         self.z[p] += self.online_mean[p]
                     else:
                         # print(self.online_var[p].mean(), (self.online_mean[p]**2).mean())
@@ -108,17 +119,13 @@ class SGBD(Optimizer):
                         self.z[p] += torch.sqrt(self.online_var[p])
                         # self.z[p] *= 0.1 * self.online_var[p]
                         # self.z[p] += self.online_var[p]
-                else:
-                    # self.z[p] *= self.step_size / sum(p.shape)
-                    # self.z[p] += self.step_size / sum(p.shape)
-                    self.z[p] *= self.step_size / self.n_params
-                    self.z[p] += self.step_size / self.n_params
+                # else:
+                #     self.z[p] *= self.step_size / self.n_params
+                #     self.z[p] += self.step_size / self.n_params
 
-                # t = math.exp(self.log_temp[p])
+                t = math.exp(self.log_temp[p])
                 # t = self.log_temp[p]
-                t= self.n_params
                 if self.corrected:
-                    # tau = torch.sqrt(self.online_var[p] * self.n_params)
                     tau = torch.sqrt(self.online_var[p])
                     m = abs(tau * self.z[p]) < 1.702
                     alfa_c = self.torch_module.FloatTensor(self.z[p].shape).fill_(1)
@@ -131,19 +138,21 @@ class SGBD(Optimizer):
                 # region Temperature correction
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
-                self.gamma = self.gamma_base / (self.batch_counter ** self.gamma_rate)
+
                 if str(self.log_temp[p]) == "nan" or self.batch_counter % 64 == 0.5:
                     print("ayo")
                     print(self.batch_counter, self.gamma, alfa, self.log_temp[p])
 
+                # if self.batch_counter > 600:
+                #     debug = 0
+                #     # print(self.temperature_history[p])
+                #     # print(len(self.temperature_history[p]))
+                #     # print(self.log_temp[p])
+                #     # input()
+                self.temperature_history[p][0].append(self.batch_counter)
+                self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
                 # endregion
 
-                # self.isp[p] += 1
-                #
-                # region Plot probabilities
-                # print(self.batch_n, self.batch_counter)
-                # print(self.batch_counter // self.batch_n)
-                # print(self.isp[p])
                 if LOG_PROB:
                     if self.batch_counter / self.batch_n >= 1 and self.probabilities[p] is None:
                         self.probabilities[p] = list(probs.flatten())
@@ -158,8 +167,6 @@ class SGBD(Optimizer):
                         self.probabilities[p].extend(probs.flatten())
                 # endregion
 
-                if self.batch_counter // self.batch_n == 3:
-                    return 0
 
                 if self.extreme:
                     sampled = (1 - probs) * 2 - 1
@@ -167,19 +174,19 @@ class SGBD(Optimizer):
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
                 tempo = (torch.ceil(sampled) * 2 - 1) * self.z[p]
-                # print(p.data)
                 p.data = p.data + tempo
 
         # region Replace old models in ensemble
-        if self.batch_counter >= self.thermolize_epoch * self.batch_n:
-            if random.uniform(0, 1) < self.select_model:
-                model_mod = self.ensemble.get_last()
-                self.ensemble.rotate()
+        if len(self.ensemble) > 0:
+            if self.batch_counter >= self.thermolize_epoch * self.batch_n:
+                if random.uniform(0, 1) < self.select_model:
+                    model_mod = self.ensemble.get_last()
+                    self.ensemble.rotate()
 
-                state_dict = model_mod.state_dict()
+                    state_dict = model_mod.state_dict()
 
-                for (name, param), x in zip(state_dict.items(), self.param_groups[0]['params']):
-                    param.copy_(x)
+                    for (name, param), x in zip(state_dict.items(), self.param_groups[0]['params']):
+                        param.copy_(x)
         # endregion
 
         return .0

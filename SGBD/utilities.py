@@ -27,6 +27,8 @@ class CircularList:
     def set_last(self, obj):
         self._internal_list[self._pointer] = obj
 
+    def __len__(self):
+        return self.size
     @property
     def internal_list(self):
         return self._internal_list
