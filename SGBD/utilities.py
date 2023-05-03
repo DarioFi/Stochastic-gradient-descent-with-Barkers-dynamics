@@ -49,6 +49,7 @@ def get_kwargs(batch_size, test_batch_size):
     else:
         device = torch.device("cpu")
 
+    print(f"using device {device.type}")
     train_kwargs = {'batch_size': batch_size}
     test_kwargs = {'batch_size': test_batch_size}
 

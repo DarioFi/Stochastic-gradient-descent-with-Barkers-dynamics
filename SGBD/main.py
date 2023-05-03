@@ -23,7 +23,7 @@ from torchsummary import summary
 from SGBD.datasets import get_mnist, get_cifar10
 from SGBD.utilities import get_kwargs
 from optimizer import SGBD
-from model import NNet, train, test
+from model import NNet, train, test, LargeModel, MnistResNet
 
 torch.manual_seed(2212)
 
@@ -170,11 +170,23 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
 compile_model = True
 
 EPOCHS = 30
+ensemble_size = 0
 DS = "CIFAR10"
 if __name__ == '__main__':
-    main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=30)
-    main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=30)
-    main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=30)
+    # main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size)
+    # main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size)
+    # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size)
+
+    NNet = MnistResNet
+    # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size)
+    main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+         ensemble_size=ensemble_size)
+    main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+         ensemble_size=ensemble_size)
 
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
 

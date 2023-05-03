@@ -158,14 +158,23 @@ class MnistResNet(ResNet):
         return output
 
 
-NNet = MediumModel
+NNet = LargeModel
+
+loaded_data = None
 
 
 def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True, train_loss=None):
     model.train()
-    for batch_idx, (data, target) in enumerate(train_loader):
+    global loaded_data
+    if loaded_data is None:
+        loaded_data = []
+        for batch_idx, (data, target) in enumerate(train_loader):
+            data, target = data.to(device), target.to(device)
+            loaded_data.append((batch_idx, (data, target)))
 
-        data, target = data.to(device), target.to(device)
+    # for batch_idx, (data, target) in enumerate(train_loader):
+    for batch_idx, (data, target) in loaded_data:
+        # data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
         loss = f.nll_loss(output, target)
