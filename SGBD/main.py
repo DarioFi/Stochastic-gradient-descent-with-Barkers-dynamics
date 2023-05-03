@@ -29,7 +29,7 @@ torch.manual_seed(2212)
 
 
 def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=4,
-         thermolize_start=1, step_size=None):
+         thermolize_start=1, step_size=None, plot_temp=False, select_model=1 / 20, ensemble_size=0):
     if dataset == "MNIST":
         use_cifar10 = False
     elif dataset == "CIFAR10":
@@ -55,7 +55,6 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         model = torch.compile(model)
 
     ensemble = None
-    ensemble_size = 0
     if use_sgdb:
         ensemble = [NNet(use_cifar10).to(device) for _ in range(ensemble_size)]
         if "Linux" in platform.platform() and compile_model is True:
@@ -65,7 +64,8 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
                          defaults={}, corrected=corrected, extreme=extreme,
                          ensemble=ensemble, step_size=step_size,
-                         thermolize_epoch=thermolize_start, epochs=epochs, batch_n=len(train_loader))
+                         thermolize_epoch=thermolize_start, epochs=epochs, batch_n=len(train_loader),
+                         select_model=select_model)
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         scheduler = StepLR(optimizer, step_size=1, gamma=.7)
@@ -144,32 +144,37 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
         with open("logs.json", "w") as file:
             json.dump(j, file, indent=4)
 
-    hist = optimizer.temperature_history
+    if plot_temp:
+        hist = optimizer.temperature_history
 
-    fig, ax1 = plt.subplots()
+        fig, ax1 = plt.subplots()
 
-    plt.title(f"CNN trained on CIFAR10 with rate = {optimizer.gamma_rate}")
-    # plt.title("Temperatures")
-    for data in hist.values():
-        ax1.plot(data[0], data[1])
+        plt.title(f"CNN trained on CIFAR10 with rate = {optimizer.gamma_rate}")
+        # plt.title("Temperatures")
+        for data in hist.values():
+            ax1.plot(data[0], data[1])
 
-    ax2 = ax1.twinx()
-    ax1.set_yscale('log')
-    ax2.plot(optimizer.gamma_history, label="stepsize")
-    ax1.grid()
-    ax1.set_ylabel("Temperatures")
-    ax1.set_xlabel(f"Steps (epoch = {len(train_loader)})")
-    ax2.legend()
-    plt.show()
-    print(list(len(x) for x in hist.values()))
+        ax2 = ax1.twinx()
+        ax1.set_yscale('log')
+        ax2.plot(optimizer.gamma_history, label="stepsize")
+        ax1.grid()
+        ax1.set_ylabel("Temperatures")
+        ax1.set_xlabel(f"Steps (epoch = {len(train_loader)})")
+        ax2.legend()
+        plt.show()
+        print(list(len(x) for x in hist.values()))
+
+    return model, optimizer
 
 
 compile_model = True
 
-EPOCHS = 8
+EPOCHS = 30
 DS = "CIFAR10"
 if __name__ == '__main__':
-    main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True)
+    main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=30)
+    main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=30)
+    main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=30)
 
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
 

@@ -17,7 +17,7 @@ _params_t = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
 class SGBD(Optimizer):
     # Init Method:
     def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
-                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None):
+                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None, select_model=1 / 20):
         super().__init__(params, defaults)
 
         # used for recording data
@@ -28,9 +28,10 @@ class SGBD(Optimizer):
         # parameters
         self.tau = dict()
         self.sigma = .01
+        self.beta = .1
         self.corrected = corrected
         self.n_params = n_params
-        self.select_model = .05
+        self.select_model = select_model
         self.extreme = extreme
         self.thermolize_epoch = thermolize_epoch
         self.epochs = epochs
@@ -49,7 +50,7 @@ class SGBD(Optimizer):
         # adaptive size correction for temperature
         self.log_temp = dict()
         self.gamma_base = 1
-        self.gamma_rate = 0.3
+        self.gamma_rate = 0.1
         self.gamma = self.gamma_base
         self.alfa_target = 1 / 4
         self.temperature_history = dict()
@@ -80,45 +81,30 @@ class SGBD(Optimizer):
 
     # Step Method
     def step(self, closure: Optional[Callable[[], float]] = ...):
-        beta = .1
         self.batch_counter += 1
 
         # gamma does not depend on the layer
         self.gamma = self.gamma_base / (self.batch_counter ** self.gamma_rate)
         self.gamma_history.append(self.gamma)
-        # if self.batch_counter % 97 == 0:
-        #     print(list(len(x) for x in self.temperature_history.values()))
 
         for group in self.param_groups:
 
             for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
                 # if p.grad is None:
                 #     continue
-                # region Online estimations
-                if self.online_mean[p] is None:
-                    self.online_mean[p] = p.grad.data
-                    self.online_var[p] = self.torch_module.FloatTensor(p.grad.data.shape).fill_(0)
-                else:
-                    self.online_mean[p] *= (1 - beta)
-                    self.online_mean[p] += beta * p.grad.data
-                    self.online_var[p] *= (1 - beta)
-                    self.online_var[p] += beta * (p.grad.data - self.online_mean[p]) ** 2 * self.batch_n
 
-                # endregion
+                # update online mean and online var with the new gradient
+                self.update_online(p)
 
                 self.z[p] = self.z[p].normal_(0, 1)
 
                 if self.step_size is None:
                     if self.batch_counter >= 0:
                         self.z[p] *= 0.1 * self.online_mean[p]
-                        # self.z[p] *= (self.online_var[p])
                         self.z[p] += self.online_mean[p]
                     else:
-                        # print(self.online_var[p].mean(), (self.online_mean[p]**2).mean())
                         self.z[p] *= 0.1 * torch.sqrt(self.online_var[p])
                         self.z[p] += torch.sqrt(self.online_var[p])
-                        # self.z[p] *= 0.1 * self.online_var[p]
-                        # self.z[p] += self.online_var[p]
                 # else:
                 #     self.z[p] *= self.step_size / self.n_params
                 #     self.z[p] += self.step_size / self.n_params
@@ -138,10 +124,6 @@ class SGBD(Optimizer):
                 # region Temperature correction
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
-
-                if str(self.log_temp[p]) == "nan" or self.batch_counter % 64 == 0.5:
-                    print("ayo")
-                    print(self.batch_counter, self.gamma, alfa, self.log_temp[p])
 
                 # if self.batch_counter > 600:
                 #     debug = 0
@@ -167,7 +149,6 @@ class SGBD(Optimizer):
                         self.probabilities[p].extend(probs.flatten())
                 # endregion
 
-
                 if self.extreme:
                     sampled = (1 - probs) * 2 - 1
                 else:
@@ -190,6 +171,16 @@ class SGBD(Optimizer):
         # endregion
 
         return .0
+
+    def update_online(self, p):
+        if self.online_mean[p] is None:
+            self.online_mean[p] = p.grad.data
+            self.online_var[p] = self.torch_module.FloatTensor(p.grad.data.shape).fill_(0)
+        else:
+            self.online_mean[p] *= (1 - self.beta)
+            self.online_mean[p] += self.beta * p.grad.data
+            self.online_var[p] *= (1 - self.beta)
+            self.online_var[p] += self.beta * (p.grad.data - self.online_mean[p]) ** 2 * self.batch_n
 
 
 LOG_PROB = False

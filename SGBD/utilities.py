@@ -29,6 +29,11 @@ class CircularList:
 
     def __len__(self):
         return self.size
+
+    def __iter__(self):
+        for val in self._internal_list:
+            yield val
+
     @property
     def internal_list(self):
         return self._internal_list

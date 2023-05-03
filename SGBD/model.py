@@ -5,7 +5,7 @@ import torchvision
 from torchvision.models import ResNet18_Weights
 
 
-class   MediumModel(nn.Module):
+class MediumModel(nn.Module):
     def __init__(self, use_cifar=False):
         super().__init__()
         if use_cifar:
@@ -196,7 +196,7 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-            if test_ensemble is not None and len(test_ensemble) > 0:
+            if True and test_ensemble is not None and len(test_ensemble) > 0:
                 data, target = data.to(device), target.to(device)
                 output = None
                 for mod in test_ensemble:

@@ -7,11 +7,11 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["*"]
+allowed_models = ["medium"]
 allowed_algs = ["*"]
 # allowed_algs = ["adam"]
-lower_bound_epochs = 7
-upper_bound_epochs = 10
+lower_bound_epochs = 25
+upper_bound_epochs = 40
 corrected = (True, False)
 # corrected = (True,)
 
@@ -51,8 +51,8 @@ for obs in data:
     ax1.legend()
     ax2.legend(loc="upper left")
 
-    ax1.set_ylim(0.8, 3)
-    ax2.set_ylim(0, 100)
+    ax1.set_ylim(0.8, 2.5)
+    ax2.set_ylim(30, 70)
 
     # ax1.set_yscale("log")
     # plt.ylim(bottom=1e-10)
