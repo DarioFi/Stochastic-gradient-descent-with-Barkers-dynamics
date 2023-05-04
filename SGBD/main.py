@@ -23,13 +23,14 @@ from torchsummary import summary
 from SGBD.datasets import get_mnist, get_cifar10
 from SGBD.utilities import get_kwargs
 from optimizer import SGBD
-from model import NNet, train, test, LargeModel, MnistResNet
+import net_module
 
 torch.manual_seed(2212)
 
 
-def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_logs=True, epochs=4,
-         thermolize_start=1, step_size=None, plot_temp=False, select_model=1 / 20, ensemble_size=0):
+def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
+         epochs=4,
+         thermolize_start=1, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, ):
     if dataset == "MNIST":
         use_cifar10 = False
     elif dataset == "CIFAR10":
@@ -65,7 +66,7 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
                          defaults={}, corrected=corrected, extreme=extreme,
                          ensemble=ensemble, step_size=step_size,
                          thermolize_epoch=thermolize_start, epochs=epochs, batch_n=len(train_loader),
-                         select_model=select_model)
+                         select_model=sel_prob)
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         scheduler = StepLR(optimizer, step_size=1, gamma=.7)
@@ -85,11 +86,11 @@ def main(use_sgdb=True, corrected=False, extreme=False, dataset="MNIST", write_l
     for epoch in range(1, epochs + 1):
         start = time.time()
         temp = []
-        train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
+        net_module.train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
         train_loss.append(sum(temp) / len(temp))
         if epoch % 1 == 0:
             print("STD model:   ", end="")
-            l, a, le, ae = test(model, device, test_loader, log=True, test_ensemble=ensemble)
+            l, a, le, ae = net_module.test(model, device, test_loader, log=True, test_ensemble=ensemble)
             losses.append(l)
             accuracies.append(a)
             if epoch > thermolize_start:
@@ -172,20 +173,23 @@ compile_model = True
 EPOCHS = 30
 ensemble_size = 0
 DS = "CIFAR10"
-if __name__ == '__main__':
-    # main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size)
-    # main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size)
-    # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size)
 
-    NNet = MnistResNet
+nnet = net_module.CnnMedium
+
+if __name__ == '__main__':
+    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+         ensemble_size=ensemble_size)
+    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+         ensemble_size=ensemble_size)
+    main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+         ensemble_size=ensemble_size)
+
+    nnet = net_module.MnistResNet
     # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
     #      ensemble_size=ensemble_size)
-    main(True, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size)
-    main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size)
 
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede

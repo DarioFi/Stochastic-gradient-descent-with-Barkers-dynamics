@@ -5,7 +5,7 @@ import torchvision
 from torchvision.models import ResNet18_Weights
 
 
-class MediumModel(nn.Module):
+class CnnMedium(nn.Module):
     def __init__(self, use_cifar=False):
         super().__init__()
         if use_cifar:
@@ -158,7 +158,7 @@ class MnistResNet(ResNet):
         return output
 
 
-NNet = LargeModel
+Default_Net = LogisticReg
 
 loaded_data = None
 

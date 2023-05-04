@@ -3,60 +3,61 @@ from collections import OrderedDict
 import arviz as az
 import numpy as np
 import torch
+import json
 
 from main import main
 
+import net_module
 
-def sum_corr(data):
-    # print(data)
-    tot = 1
-    for lag in range(1, len(data) - 3):
-        # print(lag)
-        # print(data[lag:])
-        # print(data[:len(data)-lag])
-        x = np.corrcoef(data[lag:], data[:len(data) - lag])[0, 1]
-        # print(x)
-        tot += 2 * (x)
-    print(f"{tot=}")
-    return len(data) / tot
-
-
-def compess(sel_mod, size):
-    DS = "MNIST"
-    EPOCHS = 4
-    mod, opt = main(True, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0,
+def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
+    print(net.__name__)
+    mod, opt = main(True, net, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0,
                     write_logs=False,
-                    ensemble_size=size, select_model=sel_mod)
+                    ensemble_size=size, sel_prob=sel_prob)
 
     models_lin = []
     for i, x in enumerate(opt.ensemble):
         sd: OrderedDict = x.state_dict()
         ps = [f.flatten() for f in sd.values()]
         models_lin.append(torch.cat(ps).numpy())
-        print(models_lin[i].shape)
 
     models_lin = np.array(models_lin)
 
-    print(models_lin.shape)
-    esses = []
-    for sm in models_lin.T:
-        # print(sm.shape)
-        x = az.ess(sm)
-        # print(x)
-        print(type(x))
-        esses.append(x)
+    bulk = []
+    tail = []
+    tot = len(models_lin.T)
+    stride = tot // 100
+    for i, coord in enumerate(models_lin.T):
+        if i % stride == 0:
+            print(f"Computing ess for {i=}/{tot}  {round(i / tot * 100, 2)}%")
+        bulk.append(az.ess(coord, method="bulk"))
+        tail.append(az.ess(coord, method="tail"))
 
-    esses = np.array(esses)
-    print(f"ESS with {size=} and frequency={int(1 / sel_mod)}")
-    print(esses.mean())
-    print(esses.std())
+    if save:
+        data = {
+            "model": net.__name__,
+            "bulks": bulk,
+            "bulk_avg": sum(bulk) / len(bulk),
+            "bulk_min": min(bulk),
+            "bulk_median": np.median(bulk),
+            "tails": tail,
+            "tail_avg": sum(tail) / len(tail),
+            "tail_min": min(tail),
+            "tail_median": np.median(tail),
+            "dataset": DS,
+            "epochs": EPOCHS,
+            "select_prob": sel_prob,
+            "size": size
+        }
+
+        with open("ess_logs.json", 'r') as file:
+            j = json.load(file)
+            j.append(data)
+        with open("ess_logs.json", "w") as file:
+            json.dump(j, file, indent=4)
 
 
-# compess(1, 50)
-# compess(1 / 10, 50)
-
-
-size = 500
-print(sum_corr(np.array([x for x in range(size)])))
-
-print(sum_corr(np.random.normal(0, 1, size)))
+compute_ess(1, 50, 20, "CIFAR10", net_module.CnnMedium)
+compute_ess(1 / 20, 50, 20, "CIFAR10", net_module.CnnMedium)
+compute_ess(1 / 40, 50, 20, "CIFAR10", net_module.CnnMedium)
+compute_ess(1/100, 50, 50, "CIFAR10", net_module.LogisticReg)
