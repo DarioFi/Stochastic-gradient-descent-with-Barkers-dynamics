@@ -18,7 +18,7 @@ def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
     models_lin = []
     for i, x in enumerate(opt.ensemble):
         sd: OrderedDict = x.state_dict()
-        ps = [f.flatten() for f in sd.values()]
+        ps = [f.cpu().flatten() for f in sd.values()]
         models_lin.append(torch.cat(ps).numpy())
 
     models_lin = np.array(models_lin)
@@ -56,8 +56,10 @@ def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
         with open("ess_logs.json", "w") as file:
             json.dump(j, file, indent=4)
 
+if __name__ == '__main__':
 
-compute_ess(1, 50, 20, "CIFAR10", net_module.CnnMedium)
-compute_ess(1 / 20, 50, 20, "CIFAR10", net_module.CnnMedium)
-compute_ess(1 / 40, 50, 20, "CIFAR10", net_module.CnnMedium)
-compute_ess(1/100, 50, 50, "CIFAR10", net_module.LogisticReg)
+    # compute_ess(1, 50, 1, "MNIST", net_module.LogisticReg, False)
+    compute_ess(1, 50, 20, "CIFAR10", net_module.CnnMedium)
+    compute_ess(1 / 20, 50, 20, "CIFAR10", net_module.CnnMedium)
+    compute_ess(1 / 40, 50, 20, "CIFAR10", net_module.CnnMedium)
+    compute_ess(1/100, 50, 50, "CIFAR10", net_module.LogisticReg)

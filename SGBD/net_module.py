@@ -188,6 +188,9 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
                 loss.item()))
 
 
+loaded_test = None
+
+
 def test(model, device, test_loader, log=True, test_ensemble=None):
     model.eval()
     test_loss = 0
@@ -195,17 +198,24 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
 
     tl_ens = 0
     c_ens = 0
-    # with torch.no_grad():
-    for _ in range(1):
+    global loaded_test
+    if loaded_test is None:
+        loaded_test = []
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
+            loaded_test.append((data, target))
+    # with torch.no_grad():
+    for _ in range(1):
+
+        for data, target in loaded_test:
+            # data, target = data.to(device), target.to(device)
             # model.eval()
             output = model(data)
             test_loss += f.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-            if True and test_ensemble is not None and len(test_ensemble) > 0:
+            if False and test_ensemble is not None and len(test_ensemble) > 0:
                 data, target = data.to(device), target.to(device)
                 output = None
                 for mod in test_ensemble:
