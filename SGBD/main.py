@@ -174,24 +174,22 @@ EPOCHS = 30
 ensemble_size = 0
 DS = "CIFAR10"
 
-nnet = net_module.CnnMedium
+
+# todo: add linter
 
 if __name__ == '__main__':
-    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
-    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
-    main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
+    nnet = net_module.LogisticReg
+
+    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=ensemble_size)
+    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=ensemble_size)
+    # main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=ensemble_size)
 
     nnet = net_module.MnistResNet
-    # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size)
-    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
-    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
+    # main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=ensemble_size)
+    # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=ensemble_size)
+    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True, ensemble_size=ensemble_size)
 
+#
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
 
 

@@ -1,6 +1,7 @@
 from collections import OrderedDict
 
 import arviz as az
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import json
@@ -8,6 +9,7 @@ import json
 from main import main
 
 import net_module
+
 
 def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
     print(net.__name__)
@@ -56,10 +58,11 @@ def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
         with open("ess_logs.json", "w") as file:
             json.dump(j, file, indent=4)
 
-if __name__ == '__main__':
 
-    # compute_ess(1, 50, 1, "MNIST", net_module.LogisticReg, False)
-    compute_ess(1, 50, 20, "CIFAR10", net_module.CnnMedium)
-    compute_ess(1 / 20, 50, 20, "CIFAR10", net_module.CnnMedium)
-    compute_ess(1 / 40, 50, 20, "CIFAR10", net_module.CnnMedium)
-    compute_ess(1/100, 50, 50, "CIFAR10", net_module.LogisticReg)
+if __name__ == '__main__':
+    # az.plot_ess(np.ones(1000), kind="evolution")
+    # plt.show()
+    compute_ess(1, 30, 5, "MNIST", net_module.LogisticReg, False)
+    # compute_ess(1 / 4, 200, 20, "MNIST", net_module.LogisticReg, False)
+    # compute_ess(1, 20, 20, "MNIST", net_module.LargeModel, False)
+    # compute_ess(1 / 20, 20, 20, "MNIST", net_module.LargeModel, False)

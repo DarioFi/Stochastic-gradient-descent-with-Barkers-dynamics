@@ -46,9 +46,10 @@ for obs in data:
     ax1.plot(obs["test_losses"], label="Test loss", color="tab:blue")
     ax1.plot(obs["test_losses_ensemble"], color="tab:green", label="Loss ensemble")
     ax2.plot(obs["test_accuracies"], label="Test accuracy", color="tab:orange")
-    ax2.plot(obs["test_accuracies_ensemble"], color="tab:orange")
+    ax2.plot(obs["test_accuracies_ensemble"], color="tab:purple", label="Accuracy ensemble")
 
-    plt.title(f"{obs['algorithm']} {obs['model']}\nCorrected={obs['corrected']} Extreme={obs['extreme']}")
+    # plt.title(f"{obs['algorithm']} {obs['model']}\nCorrected={obs['corrected']} Extreme={obs['extreme']}")
+    plt.title(f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']}")
     ax1.legend()
     ax2.legend(loc="upper left")
 

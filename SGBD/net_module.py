@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as f
@@ -76,7 +77,10 @@ class LargeModel(nn.Module):
         self.dropout1 = nn.Dropout(0.25)
         self.dropout2 = nn.Dropout(0.25)
         self.dropout3 = nn.Dropout(0.25)
-        self.fc1 = nn.Linear(3136 * 8, 512)
+        if use_cifar:
+            self.fc1 = nn.Linear(3136 * 8, 512)
+        else:
+            self.fc1 = nn.Linear(18432, 512)
         self.fc2 = nn.Linear(512, 128)
         self.fc3 = nn.Linear(128, 10)
 
@@ -177,11 +181,13 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
         # data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
+
         loss = f.nll_loss(output, target)
         loss.backward()
         optimizer.step()
         if train_loss is not None:
             train_loss.append(loss.item())
+
         if batch_idx % log_interval == 0 and log:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
@@ -211,11 +217,14 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
             # data, target = data.to(device), target.to(device)
             # model.eval()
             output = model(data)
+
             test_loss += f.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 
-            if False and test_ensemble is not None and len(test_ensemble) > 0:
+            # print(np.max(torch.exp(output[0:20]).detach().numpy(), axis=1))
+            # print(output[0:10])
+            if True and test_ensemble is not None and len(test_ensemble) > 0:
                 data, target = data.to(device), target.to(device)
                 output = None
                 for mod in test_ensemble:
@@ -227,6 +236,9 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
                 tl_ens += f.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
                 pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
                 c_ens += pred.eq(target.view_as(pred)).sum().item()
+                # print(np.max(torch.exp(output[0:20]).detach().numpy(), axis=1))
+                # print(output[0:10])
+                input()
 
         # tl_ens /= len(test_ensemble)
         # c_ens /= len(test_ensemble)
