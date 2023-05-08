@@ -52,7 +52,7 @@ class SGBD(Optimizer):
         self.gamma_base = 1
         self.gamma_rate = 0.1
         self.gamma = self.gamma_base
-        self.alfa_target = 1 / 4
+        self.alfa_target = 1 / 10
         self.temperature_history = dict()
 
         self.ensemble: CircularList = CircularList(ensemble)
@@ -86,12 +86,17 @@ class SGBD(Optimizer):
         # gamma does not depend on the layer
         self.gamma = self.gamma_base / (self.batch_counter ** self.gamma_rate)
         self.gamma_history.append(self.gamma)
-
+        massimi = []
+        massimigrad = []
         for group in self.param_groups:
 
             for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
                 # if p.grad is None:
                 #     continue
+
+                massimi.append(float(p.data.max()))
+                massimigrad.append(float(p.grad.data.max()))
+
 
                 # update online mean and online var with the new gradient
                 self.update_online(p)
@@ -156,6 +161,9 @@ class SGBD(Optimizer):
 
                 tempo = (torch.ceil(sampled) * 2 - 1) * self.z[p]
                 p.data = p.data + tempo
+
+        # print(max(massimi))
+        # print(max(massimigrad))
 
         # region Replace old models in ensemble
         if len(self.ensemble) > 0:

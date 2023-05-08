@@ -7,7 +7,7 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["medium", ]
+allowed_models = ["large", ]
 allowed_algs = ["*"]
 # allowed_algs = ["adam"]
 lower_bound_epochs = 25

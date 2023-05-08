@@ -26,7 +26,7 @@ from optimizer import SGBD
 import net_module
 
 torch.manual_seed(2212)
-
+np.random.seed(2212)
 
 def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
          epochs=4,
@@ -86,8 +86,13 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
     for epoch in range(1, epochs + 1):
         start = time.time()
         temp = []
+        # for t in optimizer.log_temp.values():
+        #     print(float(t), end=", ")
+        # print("")
         net_module.train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
         train_loss.append(sum(temp) / len(temp))
+
+
         if epoch % 1 == 0:
             print("STD model:   ", end="")
             l, a, le, ae = net_module.test(model, device, test_loader, log=True, test_ensemble=ensemble)
@@ -114,6 +119,9 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
 
         if scheduler is not None:
             scheduler.step()
+
+        if epoch == 3:
+            torch.save(model.state_dict(), f"modello_epoca{epoch}")
 
     print(f"Optimizer: {optimizer.__class__}")
     print(f"Parameters: {corrected=} - {extreme=}")
@@ -174,23 +182,24 @@ EPOCHS = 30
 ensemble_size = 0
 DS = "CIFAR10"
 
-nnet = net_module.CnnMedium
+# nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
+nnet = net_module.MnistResNet
 
 if __name__ == '__main__':
-    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
     main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size)
+    # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size)
     main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size)
 
-    nnet = net_module.MnistResNet
+    # nnet = net_module.MnistResNet
     # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
     #      ensemble_size=ensemble_size)
-    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
-    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size)
+    # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size)
+    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size)
 
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
 

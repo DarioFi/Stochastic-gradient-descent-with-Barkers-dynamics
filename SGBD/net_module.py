@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as f
 import torchvision
+from torch import autograd
 from torchvision.models import ResNet18_Weights
 
 
@@ -173,19 +174,24 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
             loaded_data.append((batch_idx, (data, target)))
 
     # for batch_idx, (data, target) in enumerate(train_loader):
-    for batch_idx, (data, target) in loaded_data:
-        # data, target = data.to(device), target.to(device)
-        optimizer.zero_grad()
-        output = model(data)
-        loss = f.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        if train_loss is not None:
-            train_loss.append(loss.item())
-        if batch_idx % log_interval == 0 and log:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
-                loss.item()))
+    # with autograd.detect_anomaly():
+    if True:
+        for batch_idx, (data, target) in loaded_data:
+            # data, target = data.to(device), target.to(device)
+            optimizer.zero_grad()
+            output = model(data)
+            loss = f.nll_loss(output, target)
+            loss.backward()
+
+            nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)
+
+            optimizer.step()
+            if train_loss is not None:
+                train_loss.append(loss.item())
+            if batch_idx % log_interval == 0 and log:
+                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                    epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
+                    loss.item()))
 
 
 loaded_test = None
@@ -244,3 +250,13 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
             100. * c_ens / len(test_loader.dataset)))
 
     return test_loss, 100. * correct / len(test_loader.dataset), tl_ens, 100. * c_ens / len(test_loader.dataset)
+
+
+def hot_loader(path, cl):
+    def lod(use_cifar):
+        model = cl(use_cifar)
+        model.load_state_dict(torch.load(path))
+        model.eval()
+        return model
+
+    return lod
