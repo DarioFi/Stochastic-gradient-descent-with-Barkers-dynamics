@@ -8,6 +8,9 @@ with open("ess_logs.json", "r") as file:
 
 # todo: ask about difference bulk tail for ess
 
+assert isinstance(data, list)
+
+data.sort(key=lambda x: x["model"])
 for x in data:
     sns.histplot(x["bulks"])
     sns.histplot(x["tails"])
@@ -15,4 +18,11 @@ for x in data:
 
     del x["bulks"]
     del x["tails"]
-    print(x)
+    if False:
+        keys = ["model", "size", "bulk_min", "bulk_median", "tail_min"]
+        print(x["model"], end=" & ")
+        print(x["size"], end=" & ")
+        print(f'{round(x["select_prob"] * 100, 1)}\%', end=" & ")
+        print(f'{round(x["bulk_min"], 1)}, {round(x["bulk_median"], 1)}', end=" & ")
+        print(f'{round(x["tail_min"], 1)}, {round(x["tail_median"], 1)}', end=" \\\\")
+        print("")
