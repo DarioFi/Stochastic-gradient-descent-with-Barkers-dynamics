@@ -10,7 +10,7 @@ with open("ess_logs.json", "r") as file:
 
 assert isinstance(data, list)
 
-data.sort(key=lambda x: x["model"])
+data.sort(key=lambda x: x["model"], reverse=True)
 for x in data:
     # sns.histplot(x["bulks"])
     # sns.histplot(x["tails"])

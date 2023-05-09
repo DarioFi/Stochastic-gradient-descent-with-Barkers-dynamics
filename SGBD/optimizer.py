@@ -17,7 +17,8 @@ _params_t = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
 class SGBD(Optimizer):
     # Init Method:
     def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
-                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None, select_model=1 / 20):
+                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None, alfa_target=1 / 4,
+                 select_model=1 / 20):
         super().__init__(params, defaults)
 
         # used for recording data
@@ -52,7 +53,7 @@ class SGBD(Optimizer):
         self.gamma_base = 1
         self.gamma_rate = 0.1
         self.gamma = self.gamma_base
-        self.alfa_target = 1 / 10
+        self.alfa_target = alfa_targete
         self.temperature_history = dict()
 
         self.ensemble: CircularList = CircularList(ensemble)
@@ -96,7 +97,6 @@ class SGBD(Optimizer):
 
                 massimi.append(float(p.data.max()))
                 massimigrad.append(float(p.grad.data.max()))
-
 
                 # update online mean and online var with the new gradient
                 self.update_online(p)
