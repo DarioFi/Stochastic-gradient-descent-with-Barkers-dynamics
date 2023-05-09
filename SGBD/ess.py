@@ -32,17 +32,18 @@ def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
     for i, coord in enumerate(models_lin.T):
         if i % stride == 0:
             print(f"Computing ess for {i=}/{tot}  {round(i / tot * 100, 2)}%")
+        if i % 10 != 0: continue
         bulk.append(az.ess(coord, method="bulk"))
         tail.append(az.ess(coord, method="tail"))
 
     if save:
         data = {
             "model": net.__name__,
-            "bulks": bulk,
+            # "bulks": bulk,
             "bulk_avg": sum(bulk) / len(bulk),
             "bulk_min": min(bulk),
             "bulk_median": np.median(bulk),
-            "tails": tail,
+            # "tails": tail,
             "tail_avg": sum(tail) / len(tail),
             "tail_min": min(tail),
             "tail_median": np.median(tail),
@@ -62,7 +63,9 @@ def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
 if __name__ == '__main__':
     # az.plot_ess(np.ones(1000), kind="evolution")
     # plt.show()
-    compute_ess(1, 30, 5, "MNIST", net_module.LogisticReg, False)
+    # compute_ess(1, 30, 5, "MNIST", net_module.LogisticReg, False)
     # compute_ess(1 / 4, 200, 20, "MNIST", net_module.LogisticReg, False)
-    # compute_ess(1, 20, 20, "MNIST", net_module.LargeModel, False)
-    # compute_ess(1 / 20, 20, 20, "MNIST", net_module.LargeModel, False)
+    compute_ess(1, 20, 20, "CIFAR10", net_module.LargeModel, True)
+    compute_ess(1 / 20, 20, 20, "CIFAR10", net_module.LargeModel, True)
+    compute_ess(1, 20, 20, "CIFAR10", net_module.MnistResNet, True)
+    compute_ess(1 / 20, 20, 20, "CIFAR10", net_module.MnistResNet, True)
