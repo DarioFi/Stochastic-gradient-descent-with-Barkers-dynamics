@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as f
 import torchvision
 from torch import autograd
-from torchvision.models import ResNet18_Weights
+from torchvision.models import ResNet18_Weights, EfficientNet, efficientnet_b0
 
 
 class CnnMedium(nn.Module):
@@ -159,7 +159,18 @@ class MnistResNet(ResNet):
         return output
 
 
-Default_Net = LogisticReg
+class effnet(nn.Module):
+    def __init__(self, use_cifar=False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.model = efficientnet_b0()
+        self.fc = nn.Linear(1000, 10)
+
+    def forward(self, x):
+        x = self.model.forward(x)
+        x = self.fc(x)
+        o = f.log_softmax(x, dim=1)
+        return o
+
 
 loaded_data = None
 
@@ -173,8 +184,6 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
             data, target = data.to(device), target.to(device)
             loaded_data.append((batch_idx, (data, target)))
 
-    # for batch_idx, (data, target) in enumerate(train_loader):
-    # with autograd.detect_anomaly():
     if True:
         for batch_idx, (data, target) in loaded_data:
             # data, target = data.to(device), target.to(device)
@@ -195,6 +204,8 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
 
 
 loaded_test = None
+
+Default_Net = effnet
 
 
 def test(model, device, test_loader, log=True, test_ensemble=None):

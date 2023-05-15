@@ -53,7 +53,7 @@ class SGBD(Optimizer):
         self.gamma_base = 1
         self.gamma_rate = 0.1
         self.gamma = self.gamma_base
-        self.alfa_target = alfa_targete
+        self.alfa_target = alfa_target
         self.temperature_history = dict()
 
         self.ensemble: CircularList = CircularList(ensemble)

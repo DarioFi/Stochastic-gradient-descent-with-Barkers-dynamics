@@ -178,15 +178,15 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
 
 compile_model = True
 
-EPOCHS = 40
-ensemble_size = 10
+EPOCHS = 30
+ensemble_size = 0
 DS = "CIFAR10"
 
 # nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
-nnet = net_module.LargeModel
+nnet = net_module.Default_Net
 
 if __name__ == '__main__':
-    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size, alfa_target=1 / 10)
     main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size, alfa_target=1 / 10)
