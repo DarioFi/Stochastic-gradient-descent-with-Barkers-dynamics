@@ -8,7 +8,7 @@ import json
 
 from main import main
 
-import net_module
+import models
 
 
 def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
@@ -63,9 +63,7 @@ def compute_ess(sel_prob, size, EPOCHS, DS, net, save=True):
 if __name__ == '__main__':
     # az.plot_ess(np.ones(1000), kind="evolution")
     # plt.show()
-    # compute_ess(1, 30, 5, "MNIST", net_module.LogisticReg, False)
-    # compute_ess(1 / 4, 200, 20, "MNIST", net_module.LogisticReg, False)
-    compute_ess(1, 20, 20, "CIFAR10", net_module.LargeModel, True)
-    compute_ess(1 / 20, 20, 20, "CIFAR10", net_module.LargeModel, True)
-    compute_ess(1, 20, 20, "CIFAR10", net_module.MnistResNet, True)
-    compute_ess(1 / 20, 20, 20, "CIFAR10", net_module.MnistResNet, True)
+    compute_ess(1, 20, 20, "CIFAR10", models.LargeModel, True)
+    compute_ess(1 / 20, 20, 20, "CIFAR10", models.LargeModel, True)
+    compute_ess(1, 20, 20, "CIFAR10", models.MnistResNet, True)
+    compute_ess(1 / 20, 20, 20, "CIFAR10", models.MnistResNet, True)

@@ -1,15 +1,14 @@
-from __future__ import print_function
-
 import platform
 import time
 
 import numpy as np
 
 import torch
+import torchvision.models
 # torch._dynamo.config.verbose=True
 
 
-import torch.optim as optim
+from torch import optim
 from matplotlib import pyplot as plt
 
 # import torchvision
@@ -20,18 +19,20 @@ from torch.optim.swa_utils import AveragedModel
 from torch.optim.lr_scheduler import StepLR
 from torchsummary import summary
 
+from train_test_utils import train, test
 from SGBD.datasets import get_mnist, get_cifar10
 from SGBD.utilities import get_kwargs
 from optimizer import SGBD
-import net_module
+import models
 
 torch.manual_seed(2212)
 np.random.seed(2212)
 
 
-def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
+def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
          epochs=4, alfa_target=1 / 4,
          thermolize_start=1, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, ):
+    """Main function that handles the training of the model"""
     if dataset == "MNIST":
         use_cifar10 = False
     elif dataset == "CIFAR10":
@@ -41,7 +42,7 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
 
     train_kwargs, test_kwargs, device = get_kwargs(batch_size=256, test_batch_size=1000)
 
-    model = NNet(use_cifar10).to(device)
+    model = nnet(use_cifar10).to(device)
     model = model.to(device)
 
     model_name = str(model.__class__.__name__)  # If done after compile gives wrong name
@@ -58,7 +59,7 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
 
     ensemble = None
     if use_sgdb:
-        ensemble = [NNet(use_cifar10).to(device) for _ in range(ensemble_size)]
+        ensemble = [nnet(use_cifar10).to(device) for _ in range(ensemble_size)]
         if "Linux" in platform.platform() and compile_model is True:
             ensemble = [torch.compile(x) for x in ensemble]
         scheduler = None
@@ -90,12 +91,12 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
         # for t in optimizer.log_temp.values():
         #     print(float(t), end=", ")
         # print("")
-        net_module.train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
+        train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
         train_loss.append(sum(temp) / len(temp))
 
         if epoch % 1 == 0:
             print("STD model:   ", end="")
-            l, a, le, ae = net_module.test(model, device, test_loader, log=True, test_ensemble=ensemble)
+            l, a, le, ae = test(model, device, test_loader, log=True, test_ensemble=ensemble)
             losses.append(l)
             accuracies.append(a)
             if epoch > thermolize_start:
@@ -137,6 +138,7 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
             # "algorithm": str(optimizer.__class__.__name__) + " fixed step",
             "algorithm": str(optimizer.__class__.__name__),
             "model": model_name,
+            "alfa_target": alfa_target,
             "test_losses": losses,
             "test_losses_swa": losses_swa,
             "test_losses_ensemble": losses_ensemble,
@@ -178,18 +180,21 @@ def main(use_sgdb, NNet, corrected=False, extreme=False, dataset="MNIST", write_
 
 compile_model = True
 
-EPOCHS = 30
+EPOCHS = 20
 ensemble_size = 0
 DS = "CIFAR10"
 
 # nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
-nnet = net_module.Default_Net
+nnet = models.CnnMedium
 
 if __name__ == '__main__':
-    main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size, alfa_target=1 / 10)
     main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size, alfa_target=1 / 10)
+
+    # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size, alfa_target=1 / 10)
 
     # nnet = net_module.MnistResNet
     # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,

@@ -87,35 +87,25 @@ class SGBD(Optimizer):
         # gamma does not depend on the layer
         self.gamma = self.gamma_base / (self.batch_counter ** self.gamma_rate)
         self.gamma_history.append(self.gamma)
-        massimi = []
-        massimigrad = []
         for group in self.param_groups:
 
             for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
                 # if p.grad is None:
                 #     continue
 
-                massimi.append(float(p.data.max()))
-                massimigrad.append(float(p.grad.data.max()))
-
                 # update online mean and online var with the new gradient
                 self.update_online(p)
 
                 self.z[p] = self.z[p].normal_(0, 1)
 
-                if self.step_size is None:
-                    if self.batch_counter >= 0:
-                        self.z[p] *= 0.1 * self.online_mean[p]
-                        self.z[p] += self.online_mean[p]
-                    else:
-                        self.z[p] *= 0.1 * torch.sqrt(self.online_var[p])
-                        self.z[p] += torch.sqrt(self.online_var[p])
-                # else:
-                #     self.z[p] *= self.step_size / self.n_params
-                #     self.z[p] += self.step_size / self.n_params
+                if self.batch_counter >= 0:
+                    self.z[p] *= 0.1 * self.online_mean[p]
+                    self.z[p] += self.online_mean[p]
+                else:
+                    self.z[p] *= 0.1 * torch.sqrt(self.online_var[p])
+                    self.z[p] += torch.sqrt(self.online_var[p])
 
                 t = math.exp(self.log_temp[p])
-                # t = self.log_temp[p]
                 if self.corrected:
                     tau = torch.sqrt(self.online_var[p])
                     m = abs(tau * self.z[p]) < 1.702
@@ -130,14 +120,8 @@ class SGBD(Optimizer):
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
 
-                # if self.batch_counter > 600:
-                #     debug = 0
-                #     # print(self.temperature_history[p])
-                #     # print(len(self.temperature_history[p]))
-                #     # print(self.log_temp[p])
-                #     # input()
-                self.temperature_history[p][0].append(self.batch_counter)
-                self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
+                # self.temperature_history[p][0].append(self.batch_counter)
+                # self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
                 # endregion
 
                 if LOG_PROB:
@@ -159,11 +143,8 @@ class SGBD(Optimizer):
                 else:
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
-                tempo = (torch.ceil(sampled) * 2 - 1) * self.z[p]
-                p.data = p.data + tempo
-
-        # print(max(massimi))
-        # print(max(massimigrad))
+                temp_var = (torch.ceil(sampled) * 2 - 1) * self.z[p]
+                p.data = p.data + temp_var
 
         # region Replace old models in ensemble
         if len(self.ensemble) > 0:

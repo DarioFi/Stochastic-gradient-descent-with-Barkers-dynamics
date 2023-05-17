@@ -2022,5 +2022,143 @@
             0.0638343722569015,
             0.0652761107348666
         ]
+    },
+    {
+        "epochs": 5,
+        "corrected": false,
+        "extreme": false,
+        "dataset": "CIFAR10",
+        "algorithm": "Adam",
+        "model": "CnnMedium",
+        "test_losses": [
+            1.5689310302734376,
+            1.493244677734375,
+            1.4103204345703124,
+            1.3875572387695312,
+            1.3566578979492188
+        ],
+        "test_losses_swa": [],
+        "test_losses_ensemble": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "swa_start": 1000,
+        "test_accuracies": [
+            44.09,
+            46.19,
+            49.33,
+            50.48,
+            51.85
+        ],
+        "test_accuracies_swa": [],
+        "test_accuracies_ensemble": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "train_losses": [
+            1.8708403712632704,
+            1.6168827000929384,
+            1.553938357805719,
+            1.5094903105375719,
+            1.4783299249045703
+        ]
+    },
+    {
+        "epochs": 5,
+        "corrected": false,
+        "extreme": false,
+        "dataset": "CIFAR10",
+        "algorithm": "SGBD",
+        "model": "CnnMedium",
+        "test_losses": [
+            1.9986105346679688,
+            1.4845580688476563,
+            1.33717587890625,
+            1.2891667358398438,
+            1.23297470703125
+        ],
+        "test_losses_swa": [],
+        "test_losses_ensemble": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "swa_start": 1000,
+        "test_accuracies": [
+            27.36,
+            46.88,
+            51.17,
+            53.59,
+            55.79
+        ],
+        "test_accuracies_swa": [],
+        "test_accuracies_ensemble": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "train_losses": [
+            2.2736673014504567,
+            1.8139326298723415,
+            1.535676966516339,
+            1.4469494229676771,
+            1.3785973580516115
+        ]
+    },
+    {
+        "epochs": 5,
+        "corrected": true,
+        "extreme": false,
+        "dataset": "CIFAR10",
+        "algorithm": "SGBD",
+        "model": "CnnMedium",
+        "test_losses": [
+            1.9943336791992188,
+            1.4699416748046874,
+            1.3490889526367187,
+            1.3023977416992187,
+            1.21590556640625
+        ],
+        "test_losses_swa": [],
+        "test_losses_ensemble": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "swa_start": 1000,
+        "test_accuracies": [
+            31.07,
+            47.4,
+            51.86,
+            52.95,
+            57.04
+        ],
+        "test_accuracies_swa": [],
+        "test_accuracies_ensemble": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+        ],
+        "train_losses": [
+            2.2822383684771403,
+            1.7614218878502748,
+            1.5510502749559831,
+            1.4628892218580052,
+            1.3845738543539632
+        ]
     }
 ]
