@@ -186,8 +186,8 @@ DS = "CIFAR10"
 nnet = net_module.Default_Net
 
 if __name__ == '__main__':
-    main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size, alfa_target=1 / 10)
+    # main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
+    #      ensemble_size=ensemble_size, alfa_target=1 / 10)
     main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
          ensemble_size=ensemble_size, alfa_target=1 / 10)
 
