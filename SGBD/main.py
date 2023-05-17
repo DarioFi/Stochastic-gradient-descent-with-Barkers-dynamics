@@ -31,7 +31,7 @@ np.random.seed(2212)
 
 def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
          epochs=4, alfa_target=1 / 4,
-         thermolize_start=1, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, ):
+         thermolize_start=0, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, ):
     """Main function that handles the training of the model"""
     if dataset == "MNIST":
         use_cifar10 = False
@@ -180,29 +180,22 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
 
 compile_model = True
 
-EPOCHS = 20
+EPOCHS = 30
 ensemble_size = 0
 DS = "CIFAR10"
 
 # nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
-nnet = models.CnnMedium
+nnet = models.LogisticReg
 
 if __name__ == '__main__':
-    main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size, alfa_target=1 / 10)
-    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-         ensemble_size=ensemble_size, alfa_target=1 / 10)
+    # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+    main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
-    # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size, alfa_target=1 / 10)
-
-    # nnet = net_module.MnistResNet
-    # main(False, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size)
-    # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size)
-    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, thermolize_start=0, write_logs=True,
-    #      ensemble_size=ensemble_size)
+    # nnet = models.LargeModel
+    # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
 # Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
 
