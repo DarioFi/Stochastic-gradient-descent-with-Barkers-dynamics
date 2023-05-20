@@ -7,15 +7,15 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["eff", ]
+allowed_models = ["logistic", ]
 allowed_algs = ["*"]
 # allowed_algs = ["adam"]
-lower_bound_epochs = 25
-upper_bound_epochs = 40
+lower_bound_epochs = 19
+upper_bound_epochs = 21
 corrected = (True, False)
 # corrected = (True,)
 
-for obs in data:
+for obs in data[-16:]:
 
     if not obs['corrected'] in corrected:
         continue
@@ -49,12 +49,12 @@ for obs in data:
     ax2.plot(obs["test_accuracies_ensemble"], color="tab:purple", label="Accuracy ensemble")
 
     # plt.title(f"{obs['algorithm']} {obs['model']}\nCorrected={obs['corrected']} Extreme={obs['extreme']}")
-    plt.title(f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']}")
+    plt.title(f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
     ax1.legend()
     ax2.legend(loc="upper left")
 
-    ax1.set_ylim(0.0, 2.5)
-    ax2.set_ylim(30, 90)
+    ax1.set_ylim(0.0, 3)
+    ax2.set_ylim(0, 80)
 
     # ax1.set_yscale("log")
     # plt.ylim(bottom=1e-10)
