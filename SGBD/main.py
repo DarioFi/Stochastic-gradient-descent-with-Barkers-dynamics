@@ -28,10 +28,12 @@ import models
 torch.manual_seed(2212)
 np.random.seed(2212)
 
+threshold_loss = 1.0
+
 
 def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
          epochs=4, alfa_target=1 / 4,
-         thermolize_start=0, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, ):
+         thermolize_start=0, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, quit_thresh=False):
     """Main function that handles the training of the model"""
     if dataset == "MNIST":
         use_cifar10 = False
@@ -85,14 +87,23 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
     # swa_start = thermolize_start
     swa_start = 1000
 
+    crossed = False
+
     for epoch in range(1, epochs + 1):
         start = time.time()
         temp = []
+        hit = 100
         # for t in optimizer.log_temp.values():
         #     print(float(t), end=", ")
         # print("")
         train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
         train_loss.append(sum(temp) / len(temp))
+
+        if train_loss[-1] > threshold_loss and not crossed:
+            crossed = True
+            hit = epoch
+            if quit_thresh:
+                return hit
 
         if epoch % 1 == 0:
             print("STD model:   ", end="")
@@ -185,14 +196,27 @@ ensemble_size = 0
 DS = "CIFAR10"
 
 # nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
-nnet = models.LargeModel
+nnet = models.CnnMedium
 
 if __name__ == '__main__':
     # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+    hit_sgdb = []
+    for iter in range(10):
+        print(f"{iter=} - SGDB")
+        x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                 alfa_target=1 / 10, quit_thresh=True)
+        hit_sgdb.append(x)
 
+    hit_adam = []
+    for iter in range(10):
+        print(f"{iter=} - ADAM")
+        x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                 alfa_target=1 / 10, quit_thresh=True)
+        hit_adam.append(x)
+
+    print(f"{hit_sgdb=}")
+    print(f"{hit_adam=}")
     # nnet = models.CnnMedium
 
     # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
