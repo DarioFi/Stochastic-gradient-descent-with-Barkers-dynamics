@@ -207,11 +207,11 @@ if __name__ == '__main__':
         nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
 
         main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-        main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-             alfa_target=1 / 10)
+        # main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+        #      alfa_target=1 / 10)
         # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
-        nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
+        # nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
         # nnet = models.LargeModel
         # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
         # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
@@ -219,7 +219,7 @@ if __name__ == '__main__':
 # todo:
 
 # raccogliere bene tempo di stop fino ad un certo threshold
-# capire perchè resnet da errore (era la temperatura target troppo alta)
+# capire perchè resnet da errore (era la temperatura target troppo alta ma cmq è strambo)
 # aggiungere diverso modo di fare l'oscillatore
 # fare folder buona per il progetto di AI
 
@@ -228,6 +228,6 @@ if __name__ == '__main__':
 # running time dei 3 algoritmi
 # fare un grafico con l'instabilità della versione extreme
 # quanti parametri effettivamente rientrano sotto il corrected
-
+# provare a fare anche finetuning su resnet
 
 # testare più situazioni adattive e vedere come va ??

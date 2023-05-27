@@ -98,12 +98,8 @@ class SGBD(Optimizer):
 
                 self.z[p] = self.z[p].normal_(0, 1)
 
-                if self.batch_counter >= 0:
-                    self.z[p] *= 0.1 * self.online_mean[p]
-                    self.z[p] += self.online_mean[p]
-                else:
-                    self.z[p] *= 0.1 * torch.sqrt(self.online_var[p])
-                    self.z[p] += torch.sqrt(self.online_var[p])
+                self.z[p] *= 0.1 * self.online_mean[p]
+                self.z[p] += self.online_mean[p]
 
                 t = math.exp(self.log_temp[p])
                 if self.corrected:
