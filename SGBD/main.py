@@ -11,11 +11,6 @@ import torchvision.models
 from torch import optim
 from matplotlib import pyplot as plt
 
-# import torchvision
-# from torch import nn
-# from torchvision.models import ResNet18_Weights
-
-from torch.optim.swa_utils import AveragedModel
 from torch.optim.lr_scheduler import StepLR
 from torchsummary import summary
 
@@ -28,7 +23,7 @@ import models
 torch.manual_seed(2212)
 np.random.seed(2212)
 
-threshold_loss = 1.0
+threshold_accuracy_train = 80 / 100
 
 
 def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
@@ -96,10 +91,11 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
         # for t in optimizer.log_temp.values():
         #     print(float(t), end=", ")
         # print("")
-        train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
+        acc_train = train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
         train_loss.append(sum(temp) / len(temp))
 
-        if train_loss[-1] < threshold_loss and not crossed:
+        print(f"{acc_train=}")
+        if acc_train > threshold_accuracy_train and not crossed:
             crossed = True
             hit = epoch
             if quit_thresh:
@@ -117,24 +113,10 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
                 losses_ensemble.append(np.nan)
                 accuracies_ensemble.append(np.nan)
 
-        # if epoch >= swa_start:
-        #     swa_model.update_parameters(model)
-        #     print(f"SWA model:  ", end="")
-        #     l, a = test(swa_model, device, test_loader, log=True)
-        #     losses_swa.append(l)
-        #     accuracies_swa.append(a)
-        # else:
-        #     losses_swa.append(np.nan)
-        #     accuracies_swa.append(np.nan)
-        #
-
         print(f"{epoch=} - elapsed time: {round(time.time() - start, 1)}s\n")
 
         if scheduler is not None:
             scheduler.step()
-
-        if epoch == 3:
-            torch.save(model.state_dict(), f"modello_epoca{epoch}")
 
     print(f"Optimizer: {optimizer.__class__}")
     print(f"Parameters: {corrected=} - {extreme=}")
@@ -197,12 +179,13 @@ ensemble_size = 0
 DS = "CIFAR10"
 
 # nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
-nnet = models.CnnMedium
+nnet = models.LargeModel
 
 if __name__ == '__main__':
     # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    if False:
+    if True:
+        print(f"{nnet.__name__}")
         hit_sgdb = []
         for iter in range(10):
             print(f"{iter=} - SGDB")
@@ -217,24 +200,34 @@ if __name__ == '__main__':
                      alfa_target=1 / 10, quit_thresh=True)
             hit_adam.append(x)
 
-        print(f"{hit_sgdb=}")
-        print(f"{hit_adam=}")
+        print(f"{nnet.__name__} - {hit_sgdb=}")
+        print(f"{nnet.__name__} - {hit_adam=}")
 
-    nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
+    else:
+        nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
 
-    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-    main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+        main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+        main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+             alfa_target=1 / 10)
+        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
-    nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
-    # nnet = models.LargeModel
-    # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+        nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
+        # nnet = models.LargeModel
+        # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
 # todo:
-# running time dei 3 algoritmi
+
 # raccogliere bene tempo di stop fino ad un certo threshold
-# fare un grafico con l'instabilità della versione extreme
 # capire perchè resnet da errore (era la temperatura target troppo alta)
-# testare più situazioni adattive e vedere come va
+# aggiungere diverso modo di fare l'oscillatore
+# fare folder buona per il progetto di AI
+
+
+# todo stasera:
+# running time dei 3 algoritmi
+# fare un grafico con l'instabilità della versione extreme
 # quanti parametri effettivamente rientrano sotto il corrected
+
+
+# testare più situazioni adattive e vedere come va ??

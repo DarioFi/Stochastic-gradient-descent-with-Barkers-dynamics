@@ -14,12 +14,17 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
             loaded_data.append((batch_idx, (data, target)))
 
     if True:
+        correct, size = 0, 0
         for batch_idx, (data, target) in loaded_data:
+            size += len(data)
             # data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = model(data)
             loss = f.cross_entropy(output, target)
             loss.backward()
+
+            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
+            correct += pred.eq(target.view_as(pred)).sum().item()
 
             nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)
 
@@ -30,7 +35,7 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
                     loss.item()))
-
+        return correct / size
 
 loaded_test = None
 
