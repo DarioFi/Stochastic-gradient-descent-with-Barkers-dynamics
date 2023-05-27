@@ -18,7 +18,7 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
             # data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = model(data)
-            loss = f.nll_loss(output, target)
+            loss = f.cross_entropy(output, target)
             loss.backward()
 
             nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)
@@ -55,7 +55,7 @@ def test(model, device, test_loader, log=True, test_ensemble=None):
             # data, target = data.to(device), target.to(device)
             # model.eval()
             output = model(data)
-            test_loss += f.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+            test_loss += f.cross_entropy(output, target, reduction='sum').item()  # sum up batch loss
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
 

@@ -34,8 +34,8 @@ class CnnMedium(nn.Module):
         x = f.relu(x)
         x = self.dropout2(x)
         x = self.fc2(x)
-        output = f.log_softmax(x, dim=1)
-        return output
+        # x = f.log_softmax(x, dim=1)
+        return x
 
 
 class DenseModel(nn.Module):
@@ -60,7 +60,7 @@ class DenseModel(nn.Module):
         x = torch.flatten(x, 1)
         x = self.lin(x)
         x = self.ff(x)
-        x = f.log_softmax(x, dim=1)
+        # x = f.log_softmax(x, dim=1)
         return x
 
 
@@ -94,8 +94,8 @@ class LargeModel(nn.Module):
         x = self.fc2(x)
         x = self.dropout3(x)
         x = self.fc3(x)
-        output = f.log_softmax(x, dim=1)
-        return output
+        # x = f.log_softmax(x, dim=1)
+        return x
 
 
 class LogisticReg(nn.Module):
@@ -109,8 +109,8 @@ class LogisticReg(nn.Module):
     def forward(self, x):
         x = torch.flatten(x, 1)
         x = self.lin(x)
-        output = f.log_softmax(x, dim=1)
-        return output
+        # x = f.log_softmax(x, dim=1)
+        return x
 
 
 class TransformerModel(nn.Module):
@@ -131,8 +131,8 @@ class TransformerModel(nn.Module):
         x = self.transformer_encoder(x)
         # x = x.transpose(0, 1)
         x = self.fc(x)
-        output = f.log_softmax(x, dim=1)
-        return output
+        # x = f.log_softmax(x, dim=1)
+        return x
 
 
 from torchvision.models.resnet import ResNet, BasicBlock
@@ -154,19 +154,8 @@ class MnistResNet(ResNet):
 
     def forward(self, x):
         x = super().forward(x)
-        output = f.log_softmax(x, dim=1)
-        return output
-
-
-class EfficientNetCustom(nn.Module):
-    def __init__(self, use_cifar=False):
-        super().__init__()
-        self.model = efficientnet_b0(num_classes=10)
-
-    def forward(self, x):
-        x = self.model.forward(x)
-        o = f.log_softmax(x, dim=1)
-        return o
+        # x = f.log_softmax(x, dim=1)
+        return x
 
 
 Default_Net = CnnMedium
