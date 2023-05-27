@@ -184,17 +184,17 @@ nnet = models.LargeModel
 if __name__ == '__main__':
     # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    if True:
+    for nnet in [models.LargeModel, ]:
         print(f"{nnet.__name__}")
         hit_sgdb = []
-        for iter in range(10):
+        for iter in range(6):
             print(f"{iter=} - SGDB")
             x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
                      alfa_target=1 / 10, quit_thresh=True)
             hit_sgdb.append(x)
 
         hit_adam = []
-        for iter in range(10):
+        for iter in range(6):
             print(f"{iter=} - ADAM")
             x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
                      alfa_target=1 / 10, quit_thresh=True)
@@ -203,7 +203,7 @@ if __name__ == '__main__':
         print(f"{nnet.__name__} - {hit_sgdb=}")
         print(f"{nnet.__name__} - {hit_adam=}")
 
-    else:
+    if False:
         nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
 
         main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
