@@ -7,7 +7,7 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["medium", ]
+allowed_models = ["large", ]
 # allowed_algs = ["*"]
 allowed_algs = ["sgbd"]
 lower_bound_epochs = 19
@@ -35,7 +35,8 @@ for obs in data[30:]:
     if "*" not in allowed_algs:
         if any(x not in obs["algorithm"].lower() for x in allowed_algs):
             continue
-    ax1 = ax[i // 2][i % 2]
+    # ax1 = ax[i // 2][i % 2]
+    fig, ax1 = plt.subplots()
     i += 1
     ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -52,15 +53,15 @@ for obs in data[30:]:
     ax2.plot(obs["test_accuracies"], label="Test accuracy", color="tab:orange")
     # ax2.plot(obs["test_accuracies_ensemble"], color="tab:purple", label="Accuracy ensemble")
 
-    # plt.title(f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
-    plt.title(f"Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
+    plt.title(f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
+    # plt.title(f"Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
     ax1.legend()
     ax2.legend(loc="upper left")
 
-    if i == 0:
-        ax1.set_ylim(0.0, 4)
-    else:
-        ax1.set_ylim(0.0, 3)
+    # if i == 0:
+    #     ax1.set_ylim(0.0, 4)
+    # else:
+    #     ax1.set_ylim(0.0, 3)
 
     ax2.set_ylim(0, 80)
 
@@ -68,4 +69,4 @@ for obs in data[30:]:
     # plt.ylim(bottom=1e-10)
 
     ax1.grid()
-plt.show()
+    plt.show()
