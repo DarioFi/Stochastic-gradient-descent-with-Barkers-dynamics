@@ -127,6 +127,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
         #     losses_swa.append(np.nan)
         #     accuracies_swa.append(np.nan)
         #
+
         print(f"{epoch=} - elapsed time: {round(time.time() - start, 1)}s\n")
 
         if scheduler is not None:
@@ -201,39 +202,37 @@ nnet = models.CnnMedium
 if __name__ == '__main__':
     # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    hit_sgdb = []
-    for iter in range(10):
-        print(f"{iter=} - SGDB")
-        x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                 alfa_target=1 / 10, quit_thresh=True)
-        hit_sgdb.append(x)
+    if False:
+        hit_sgdb = []
+        for iter in range(10):
+            print(f"{iter=} - SGDB")
+            x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                     alfa_target=1 / 10, quit_thresh=True)
+            hit_sgdb.append(x)
 
-    hit_adam = []
-    for iter in range(10):
-        print(f"{iter=} - ADAM")
-        x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                 alfa_target=1 / 10, quit_thresh=True)
-        hit_adam.append(x)
+        hit_adam = []
+        for iter in range(10):
+            print(f"{iter=} - ADAM")
+            x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                     alfa_target=1 / 10, quit_thresh=True)
+            hit_adam.append(x)
 
-    print(f"{hit_sgdb=}")
-    print(f"{hit_adam=}")
-    # nnet = models.CnnMedium
+        print(f"{hit_sgdb=}")
+        print(f"{hit_adam=}")
 
-    # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+    nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
+
+    main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+    main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
+    nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
     # nnet = models.LargeModel
     # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
-# Prova a fare 10 epoche di SGDB poi 10 epoche di Adam e vedi che succede
-
-
-# questions:
-
-# Lunghezza abstract e quando scriverlo
-# Correct version e quanto scrivere su questo (derivazione?)
-# La versione extreme si rompe in high dim
-# Past literature
-# Parameter tuning summary?
-# conclusion ?
+# todo:
+# running time dei 3 algoritmi
+# raccogliere bene tempo di stop fino ad un certo threshold
+# fare un grafico con l'instabilità della versione extreme
+# capire perchè resnet da errore
