@@ -235,4 +235,6 @@ if __name__ == '__main__':
 # running time dei 3 algoritmi
 # raccogliere bene tempo di stop fino ad un certo threshold
 # fare un grafico con l'instabilità della versione extreme
-# capire perchè resnet da errore
+# capire perchè resnet da errore (era la temperatura target troppo alta)
+# testare più situazioni adattive e vedere come va
+# quanti parametri effettivamente rientrano sotto il corrected
