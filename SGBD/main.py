@@ -99,7 +99,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
         train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
         train_loss.append(sum(temp) / len(temp))
 
-        if train_loss[-1] > threshold_loss and not crossed:
+        if train_loss[-1] < threshold_loss and not crossed:
             crossed = True
             hit = epoch
             if quit_thresh:
