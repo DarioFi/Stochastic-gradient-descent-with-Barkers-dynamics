@@ -56,8 +56,7 @@ class SGBD(Optimizer):
         self.alfa_target = alfa_target
         self.temperature_history = dict()
 
-        self.log_global_stepsize = dict()
-        self.exponent_grad = .8
+        self.global_stepsize = 1
 
         self.ensemble: CircularList = CircularList(ensemble)
 
@@ -74,7 +73,7 @@ class SGBD(Optimizer):
                 self.probabilities[p]: List = None
 
                 self.log_temp[p] = 1
-                self.log_global_stepsize[p] = 0
+                self.global_stepsize[p] = 0
 
                 self.online_mean[p] = None
                 self.online_var[p] = None
@@ -102,8 +101,8 @@ class SGBD(Optimizer):
 
                 self.z[p] = self.z[p].normal_(0, 1)
 
-                sigma = abs(self.online_mean[p]) ** self.exponent_grad
-                sigma *= math.exp(self.log_global_stepsize[p])
+                sigma = self.online_mean[p]
+                sigma *= self.global_stepsize
                 self.z[p] *= 0.1 * sigma
                 self.z[p] += sigma
 
@@ -122,7 +121,7 @@ class SGBD(Optimizer):
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
 
-                self.log_global_stepsize[p] -= self.gamma/100 * (alfa - self.alfa_target)
+                self.global_stepsize[p] -= self.gamma / 100 * (alfa - self.alfa_target)
 
                 # print(self.log_temp[p], self.log_global_stepsize[p])
                 # self.temperature_history[p][0].append(self.batch_counter)

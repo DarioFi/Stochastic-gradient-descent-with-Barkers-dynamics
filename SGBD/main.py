@@ -23,7 +23,7 @@ import models
 torch.manual_seed(2212)
 np.random.seed(2212)
 
-threshold_accuracy_train = 80 / 100
+threshold_accuracy_train = 66.6 / 100
 
 
 def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
@@ -181,53 +181,42 @@ DS = "CIFAR10"
 # nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
 nnet = models.LargeModel
 
+check_time = False
+
 if __name__ == '__main__':
     # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    for nnet in [models.LargeModel, ]:
-        print(f"{nnet.__name__}")
-        hit_sgdb = []
-        for iter in range(6):
-            print(f"{iter=} - SGDB")
-            x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                     alfa_target=1 / 10, quit_thresh=True)
-            hit_sgdb.append(x)
+    if check_time:
+        for nnet in [models.LargeModel, ]:
+            print(f"{nnet.__name__}")
+            hit_sgdb = []
+            for iter in range(6):
+                print(f"{iter=} - SGDB")
+                x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                         alfa_target=1 / 10, quit_thresh=True)
+                hit_sgdb.append(x)
 
-        hit_adam = []
-        for iter in range(6):
-            print(f"{iter=} - ADAM")
-            x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                     alfa_target=1 / 10, quit_thresh=True)
-            hit_adam.append(x)
+            hit_adam = []
+            for iter in range(6):
+                print(f"{iter=} - ADAM")
+                x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                         alfa_target=1 / 10, quit_thresh=True)
+                hit_adam.append(x)
 
-        print(f"{nnet.__name__} - {hit_sgdb=}")
-        print(f"{nnet.__name__} - {hit_adam=}")
+            print(f"{nnet.__name__} - {hit_sgdb=}")
+            print(f"{nnet.__name__} - {hit_adam=}")
 
-    if False:
-        nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
-
-        main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-        # main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-        #      alfa_target=1 / 10)
-        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-
-        # nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
-        # nnet = models.LargeModel
-        # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
 # todo:
 
-# raccogliere bene tempo di stop fino ad un certo threshold
-# capire perchè resnet da errore (era la temperatura target troppo alta ma cmq è strambo)
-# aggiungere diverso modo di fare l'oscillatore
-# fare folder buona per il progetto di AI
+# raccogliere bene tempo di stop fino ad un certo threshold OK
+# capire perchè resnet da errore (era la temperatura target troppo alta ma cmq è strambo) MEH
+# aggiungere diverso modo di fare l'oscillatore sembra fallire
 
-
-# todo stasera:
+# plot statistics corrected
 # running time dei 3 algoritmi
 # fare un grafico con l'instabilità della versione extreme
 # quanti parametri effettivamente rientrano sotto il corrected
-# provare a fare anche finetuning su resnet
+# provare a fare anche finetuning su resnet CIRCA
 
 # testare più situazioni adattive e vedere come va ??
