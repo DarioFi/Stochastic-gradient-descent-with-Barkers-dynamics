@@ -17,13 +17,13 @@ from torchsummary import summary
 from train_test_utils import train, test
 from SGBD.datasets import get_mnist, get_cifar10
 from SGBD.utilities import get_kwargs
-from optimizer_modified import SGBD
+from optimizer import SGBD
 import models
 
 torch.manual_seed(2212)
 np.random.seed(2212)
 
-threshold_accuracy_train = 80 / 100
+threshold_accuracy_train = 66.6 / 100
 
 
 def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
@@ -179,29 +179,32 @@ ensemble_size = 0
 DS = "CIFAR10"
 
 # nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
-nnet = models.CnnMedium
+nnet = models.LargeModel
+
+check_time = False
 
 if __name__ == '__main__':
     # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    if False:
-        print(f"{nnet.__name__}")
-        hit_sgdb = []
-        for iter in range(10):
-            print(f"{iter=} - SGDB")
-            x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                     alfa_target=1 / 10, quit_thresh=True)
-            hit_sgdb.append(x)
+    if check_time:
+        for nnet in [models.LargeModel, ]:
+            print(f"{nnet.__name__}")
+            hit_sgdb = []
+            for iter in range(6):
+                print(f"{iter=} - SGDB")
+                x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                         alfa_target=1 / 10, quit_thresh=True)
+                hit_sgdb.append(x)
 
-        hit_adam = []
-        for iter in range(10):
-            print(f"{iter=} - ADAM")
-            x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                     alfa_target=1 / 10, quit_thresh=True)
-            hit_adam.append(x)
+            hit_adam = []
+            for iter in range(6):
+                print(f"{iter=} - ADAM")
+                x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+                         alfa_target=1 / 10, quit_thresh=True)
+                hit_adam.append(x)
 
-        print(f"{nnet.__name__} - {hit_sgdb=}")
-        print(f"{nnet.__name__} - {hit_adam=}")
+            print(f"{nnet.__name__} - {hit_sgdb=}")
+            print(f"{nnet.__name__} - {hit_adam=}")
 
     else:
         # nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
