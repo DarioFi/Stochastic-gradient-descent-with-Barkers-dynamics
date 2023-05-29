@@ -206,17 +206,15 @@ if __name__ == '__main__':
             print(f"{nnet.__name__} - {hit_sgdb=}")
             print(f"{nnet.__name__} - {hit_adam=}")
 
+    else:
+        # nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
 
-# todo:
+        main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+        # main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+        #      alfa_target=1 / 10)
+        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
 
-# raccogliere bene tempo di stop fino ad un certo threshold OK
-# capire perchè resnet da errore (era la temperatura target troppo alta ma cmq è strambo) MEH
-# aggiungere diverso modo di fare l'oscillatore sembra fallire
-
-# plot statistics corrected
-# running time dei 3 algoritmi
-# fare un grafico con l'instabilità della versione extreme
-# quanti parametri effettivamente rientrano sotto il corrected
-# provare a fare anche finetuning su resnet CIRCA
-
-# testare più situazioni adattive e vedere come va ??
+        # nnet = lambda use_cifar: torchvision.models.resnet18(num_classes=10)
+        # nnet = models.LargeModel
+        # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
