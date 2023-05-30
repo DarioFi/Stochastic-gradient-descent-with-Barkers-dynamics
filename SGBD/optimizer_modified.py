@@ -18,7 +18,7 @@ class SGBD(Optimizer):
     # Init Method:
     def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
                  ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None, alfa_target=1 / 4,
-                 select_model=1 / 20):
+                 select_model=1 / 20, global_stepsize=1):
         super().__init__(params, defaults)
 
         # used for recording data
@@ -51,12 +51,12 @@ class SGBD(Optimizer):
         # adaptive size correction for temperature
         self.log_temp = dict()
         self.gamma_base = 1
-        self.gamma_rate = 0.1
+        self.gamma_rate = 0.001
         self.gamma = self.gamma_base
         self.alfa_target = alfa_target
         self.temperature_history = dict()
 
-        self.global_stepsize = 1
+        self.global_stepsize = global_stepsize
 
         self.ensemble: CircularList = CircularList(ensemble)
 
@@ -73,7 +73,7 @@ class SGBD(Optimizer):
                 self.probabilities[p]: List = None
 
                 self.log_temp[p] = 1
-                self.global_stepsize[p] = 0
+                # self.global_stepsize[p] = 0
 
                 self.online_mean[p] = None
                 self.online_var[p] = None
@@ -102,7 +102,6 @@ class SGBD(Optimizer):
                 self.z[p] = self.z[p].normal_(0, 1)
 
                 sigma = self.online_mean[p]
-                sigma *= self.global_stepsize
                 self.z[p] *= 0.1 * sigma
                 self.z[p] += sigma
 
@@ -121,7 +120,7 @@ class SGBD(Optimizer):
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
 
-                self.global_stepsize[p] -= self.gamma / 100 * (alfa - self.alfa_target)
+                # self.global_stepsize[p] -= self.gamma / 100 * (alfa - self.alfa_target)
 
                 # print(self.log_temp[p], self.log_global_stepsize[p])
                 # self.temperature_history[p][0].append(self.batch_counter)
@@ -148,7 +147,7 @@ class SGBD(Optimizer):
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
                 temp_var = (torch.ceil(sampled) * 2 - 1) * self.z[p]
-                p.data = p.data + temp_var
+                p.data = p.data + temp_var * self.global_stepsize
 
         # region Replace old models in ensemble
         if len(self.ensemble) > 0:

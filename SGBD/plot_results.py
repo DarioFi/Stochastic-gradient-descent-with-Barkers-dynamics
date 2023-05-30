@@ -7,11 +7,11 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["large", ]
-# allowed_algs = ["*"]
-allowed_algs = ["sgbd"]
-lower_bound_epochs = 19
-upper_bound_epochs = 22
+allowed_models = ["resnet", ]
+allowed_algs = ["*"]
+# allowed_algs = ["sgbd"]
+lower_bound_epochs = 9
+upper_bound_epochs = 11
 corrected = (True, False)
 # corrected = (False,)
 print(len(data))
@@ -19,7 +19,10 @@ fig, ax = plt.subplots(2, 2, figsize=(12, 12))
 # fig.tight_layout()
 plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=None)
 i = 0
-for obs in data[30:]:
+
+# le run erano 0.1, 0.01, e 0.001
+# second round era 1, 0.1, 0.01
+for obs in data[-4:]:
 
     if not (obs['corrected'] in corrected):
         continue
@@ -35,8 +38,8 @@ for obs in data[30:]:
     if "*" not in allowed_algs:
         if any(x not in obs["algorithm"].lower() for x in allowed_algs):
             continue
-    # ax1 = ax[i // 2][i % 2]
-    fig, ax1 = plt.subplots()
+    ax1 = ax[i // 2][i % 2]
+    # fig, ax1 = plt.subplots()
     i += 1
     ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -53,7 +56,11 @@ for obs in data[30:]:
     ax2.plot(obs["test_accuracies"], label="Test accuracy", color="tab:orange")
     # ax2.plot(obs["test_accuracies_ensemble"], color="tab:purple", label="Accuracy ensemble")
 
-    plt.title(f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
+    if "Adam" in obs['algorithm']:
+        plt.title(f"{obs['algorithm']}")
+    else:
+        plt.title(
+            f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
     # plt.title(f"Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
     ax1.legend()
     ax2.legend(loc="upper left")
@@ -63,10 +70,11 @@ for obs in data[30:]:
     # else:
     #     ax1.set_ylim(0.0, 3)
 
-    ax2.set_ylim(0, 80)
+    ax2.set_ylim(50, 100)
 
+    ax1.set_ylim(0, 2)
     # ax1.set_yscale("log")
     # plt.ylim(bottom=1e-10)
 
     ax1.grid()
-    plt.show()
+plt.show()

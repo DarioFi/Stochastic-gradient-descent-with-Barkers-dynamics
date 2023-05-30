@@ -17,7 +17,7 @@ from torchsummary import summary
 from train_test_utils import train, test
 from SGBD.datasets import get_mnist, get_cifar10
 from SGBD.utilities import get_kwargs
-from optimizer import SGBD
+from optimizer_modified import SGBD
 import models
 
 torch.manual_seed(2212)
@@ -27,7 +27,7 @@ threshold_accuracy_train = 66.6 / 100
 
 
 def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
-         epochs=4, alfa_target=1 / 4,
+         epochs=4, alfa_target=1 / 4, global_stepsize=1,
          thermolize_start=0, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, quit_thresh=False):
     """Main function that handles the training of the model"""
     if dataset == "MNIST":
@@ -65,7 +65,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
                          defaults={}, corrected=corrected, extreme=extreme,
                          ensemble=ensemble, step_size=step_size, alfa_target=alfa_target,
                          thermolize_epoch=thermolize_start, epochs=epochs, batch_n=len(train_loader),
-                         select_model=sel_prob)
+                         select_model=sel_prob, global_stepsize=global_stepsize)
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         scheduler = StepLR(optimizer, step_size=1, gamma=.7)
