@@ -141,6 +141,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
             "test_accuracies_swa": accuracies_swa,
             "test_accuracies_ensemble": accuracies_ensemble,
             "train_losses": train_loss,
+            "stepsize": global_stepsize,
         }
         import json
         with open("logs.json", 'r') as file:

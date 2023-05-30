@@ -22,7 +22,9 @@ i = 0
 
 # le run erano 0.1, 0.01, e 0.001
 # second round era 1, 0.1, 0.01
-for obs in data[-4:]:
+
+lrs = [0, 1, .1, .01]
+for obs in data[-8:-4]:
 
     if not (obs['corrected'] in corrected):
         continue
@@ -59,8 +61,10 @@ for obs in data[-4:]:
     if "Adam" in obs['algorithm']:
         plt.title(f"{obs['algorithm']}")
     else:
-        plt.title(
-            f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
+        # plt.title(
+        #     f"{obs['algorithm']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
+
+        plt.title(f"SGDB - lr={lrs[i - 1]}")
     # plt.title(f"Extreme={obs['extreme']} alpha*={obs['alfa_target']}")
     ax1.legend()
     ax2.legend(loc="upper left")
@@ -70,7 +74,7 @@ for obs in data[-4:]:
     # else:
     #     ax1.set_ylim(0.0, 3)
 
-    ax2.set_ylim(50, 100)
+    ax2.set_ylim(0, 100)
 
     ax1.set_ylim(0, 2)
     # ax1.set_yscale("log")
