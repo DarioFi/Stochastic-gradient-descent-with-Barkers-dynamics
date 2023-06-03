@@ -28,6 +28,14 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
 
             nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)
 
+            # if epoch > 1:
+            #     total_norm = 0
+            #     for p in model.parameters():
+            #         param_norm = p.grad.detach().data.norm(2)
+            #         total_norm += param_norm.item() ** 2
+            #     total_norm = total_norm ** 0.5
+            #     print(total_norm)
+            #     input()
             optimizer.step()
             if train_loss is not None:
                 train_loss.append(loss.item())

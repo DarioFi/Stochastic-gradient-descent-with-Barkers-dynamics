@@ -18,7 +18,7 @@ class SGBD(Optimizer):
     # Init Method:
     def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
                  ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None, alfa_target=1 / 4,
-                 select_model=1 / 20):
+                 select_model=1 / 20, global_stepsize=1):
         super().__init__(params, defaults)
 
         # used for recording data
@@ -51,10 +51,12 @@ class SGBD(Optimizer):
         # adaptive size correction for temperature
         self.log_temp = dict()
         self.gamma_base = 1
-        self.gamma_rate = 0.1
+        self.gamma_rate = 0.001
         self.gamma = self.gamma_base
         self.alfa_target = alfa_target
         self.temperature_history = dict()
+
+        self.global_stepsize = global_stepsize
 
         self.ensemble: CircularList = CircularList(ensemble)
 
@@ -62,6 +64,8 @@ class SGBD(Optimizer):
             self.torch_module = torch.cuda
         else:
             self.torch_module = torch
+
+        self.corrected_statistics = {}
 
         for group in self.param_groups:
             for p in group['params']:
@@ -71,6 +75,7 @@ class SGBD(Optimizer):
                 self.probabilities[p]: List = None
 
                 self.log_temp[p] = 1
+                # self.global_stepsize[p] = 0
 
                 self.online_mean[p] = None
                 self.online_var[p] = None
@@ -79,6 +84,7 @@ class SGBD(Optimizer):
                 self.z[p] = self.torch_module.FloatTensor(p.data.shape)
 
                 self.temperature_history[p] = [[], []]
+                self.corrected_statistics[p] = []
 
     # Step Method
     def step(self, closure: Optional[Callable[[], float]] = ...):
@@ -98,16 +104,23 @@ class SGBD(Optimizer):
 
                 self.z[p] = self.z[p].normal_(0, 1)
 
-                self.z[p] *= 0.1 * self.online_mean[p]
-                self.z[p] += self.online_mean[p]
+                sigma = self.online_mean[p]
+                self.z[p] *= 0.1 * sigma
+                self.z[p] += sigma
 
                 t = math.exp(self.log_temp[p])
                 if self.corrected:
                     tau = torch.sqrt(self.online_var[p])
                     m = abs(tau * self.z[p]) < 1.702
+
+                    self.corrected_statistics[p].append(torch.sum(m)/m.numel())
                     alfa_c = self.torch_module.FloatTensor(self.z[p].shape).fill_(1)
                     alfa_c[m] = 1.702 / ((1.702 ** 2 - tau[m] ** 2 * self.z[p][m] ** 2) ** .5)
 
+                    if random.random() < 1/100:
+                        print(alfa_c[0])
+                        print(tau[0])
+                        input()
                     probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p] * alfa_c))
                 else:
                     probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p]))
@@ -116,6 +129,9 @@ class SGBD(Optimizer):
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
 
+                # self.global_stepsize[p] -= self.gamma / 100 * (alfa - self.alfa_target)
+
+                # print(self.log_temp[p], self.log_global_stepsize[p])
                 # self.temperature_history[p][0].append(self.batch_counter)
                 # self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
                 # endregion
@@ -140,7 +156,7 @@ class SGBD(Optimizer):
                     sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
 
                 temp_var = (torch.ceil(sampled) * 2 - 1) * self.z[p]
-                p.data = p.data + temp_var
+                p.data = p.data + temp_var * self.global_stepsize
 
         # region Replace old models in ensemble
         if len(self.ensemble) > 0:
