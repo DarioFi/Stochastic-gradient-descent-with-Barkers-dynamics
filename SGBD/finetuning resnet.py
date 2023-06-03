@@ -20,7 +20,7 @@ if __name__ == '__main__':
         return mod
 
 
-    main.main(True, pre_trained_model, dataset=DS, global_stepsize=1, write_logs=True, epochs=E, alfa_target=1 / 10)
-    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.1, write_logs=True, epochs=E, alfa_target=1 / 10)
-    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.01, write_logs=True, epochs=E, alfa_target=1 / 10)
-    main.main(False, pre_trained_model, dataset=DS, global_stepsize=.0, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.005, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.001, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.0001, write_logs=True, epochs=E, alfa_target=1 / 10)
+    # main.main(False, pre_trained_model, dataset=DS, global_stepsize=.0, write_logs=True, epochs=E, alfa_target=1 / 10)
