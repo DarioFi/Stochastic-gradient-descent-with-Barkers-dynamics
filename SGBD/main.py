@@ -209,8 +209,8 @@ if __name__ == '__main__':
 
     else:
         nnet = models.LargeModel
-        main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-        nnet = models.CnnMedium
-        main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-        nnet = models.LogisticReg
-        main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+        main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=False, alfa_target=1 / 10)
+        # nnet = models.CnnMedium
+        # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+        # nnet = models.LogisticReg
+        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
