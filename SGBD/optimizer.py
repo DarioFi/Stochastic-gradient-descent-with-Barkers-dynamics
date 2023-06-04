@@ -140,7 +140,7 @@ class SGBD(Optimizer):
 
                         ax[0].plot(self.bins[:-1], self.histogram_corrected / self.seen)
                         ax[0].fill_between(self.bins[:-1], self.histogram_corrected / self.seen,
-                                           [0] * len(self.histogram_corrected), alpha=.8)
+                                           [0] * len(self.histogram_corrected), alpha=.75)
                         # ax[0].set_yscale("log")
 
                         ax[0].set_ylabel("Frequency")
@@ -151,7 +151,7 @@ class SGBD(Optimizer):
                         # print(alfa_c)
                         ax[1].plot(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen)
                         ax[1].fill_between(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen,
-                                           [0] * len(self.histogram_corrected_alfa), alpha=.6)
+                                           [0] * len(self.histogram_corrected_alfa), alpha=.75)
                         ax[1].set_yscale("log")
                         ax[1].grid()
                         ax[1].set_ylabel("Frequency (log-scale)")

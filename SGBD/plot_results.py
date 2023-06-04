@@ -7,7 +7,7 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["resnet non", ]
+allowed_models = ["resnet", ]
 # allowed_models = ["resnet pre", ]
 allowed_algs = ["*"]
 # allowed_algs = ["sgbd"]
@@ -16,7 +16,9 @@ upper_bound_epochs = 17
 corrected = (True, False)
 # corrected = (False,)
 print(len(data))
+
 fig, ax = plt.subplots(2, 2, figsize=(12, 12))
+
 # fig.tight_layout()
 plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=0.3)
 i = 0
@@ -26,7 +28,7 @@ i = 0
 
 plot_epochs = 10 ** 10
 lrs = [0, 1, .1, .01]
-for obs in data[-8:]:
+for obs in data[-4:]:
 
     if not (obs['corrected'] in corrected):
         continue

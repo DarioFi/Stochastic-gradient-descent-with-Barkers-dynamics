@@ -169,3 +169,40 @@ def hot_loader(path, cl):
         return model
 
     return lod
+
+
+if __name__ == '__main__':
+    import hiddenlayer as hl
+    import datasets
+    import utilities
+
+    from torchviz import make_dot
+
+    model = CnnMedium(use_cifar=True)
+
+    # torch.jit = False
+    # x, y, _ = utilities.get_kwargs(256, 256)
+    # data_loader, _ = datasets.get_cifar10(x, y)
+    #
+    #
+    # for x, tar in d:
+    #     batch = x
+    #     break
+    #
+    # graph = hl.build_graph(model, batch, "Image")
+    # graph.theme = hl.graph.THEMES['blue'].copy()
+    # graph.save('rnn_hiddenlayer', format='png')
+
+    # batch, target = next(iter(data_loader))
+    # yhat = model(batch)
+
+    # make_dot(model(batch), params=dict(model.named_parameters())).render("attached", format="png")
+
+    from torchview import draw_graph
+
+    model_graph = draw_graph(CnnMedium(use_cifar=True), input_size=(1, 3, 32, 32),
+                             expand_nested=False,
+                             hide_inner_tensors=True,
+                             hide_module_functions=True,
+                             )
+    model_graph.visual_graph.render(format='png', filename='model_graph')
