@@ -10,6 +10,7 @@ import torch
 from torch.optim import Optimizer
 
 from torch import Tensor
+import numpy as np
 
 _params_t = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
 
@@ -40,6 +41,15 @@ class SGBD(Optimizer):
         self.batch_counter = 0
 
         self.step_size = step_size
+
+        size = 10 ** 4
+        self.range = (-.001, 0.001)
+        self.bins = np.linspace(*self.range, size + 1)
+        self.histogram_corrected = np.zeros((size,))
+
+        self.bins_alfa = np.linspace(1., 1.000015, 25 + 1)
+        self.histogram_corrected_alfa = np.zeros((25,))
+        self.seen = 0
 
         # state vars
         self.state = dict()
@@ -113,14 +123,46 @@ class SGBD(Optimizer):
                     tau = torch.sqrt(self.online_var[p])
                     m = abs(tau * self.z[p]) < 1.702
 
-                    self.corrected_statistics[p].append(torch.sum(m)/m.numel())
+                    self.corrected_statistics[p].append(torch.sum(m) / m.numel())
                     alfa_c = self.torch_module.FloatTensor(self.z[p].shape).fill_(1)
                     alfa_c[m] = 1.702 / ((1.702 ** 2 - tau[m] ** 2 * self.z[p][m] ** 2) ** .5)
 
-                    if random.random() < 1/100:
-                        print(alfa_c[0])
-                        print(tau[0])
-                        input()
+                    if self.batch_counter > 500:  # 2 epochs
+                        self.histogram_corrected += np.histogram(self.z[p].cpu().numpy(), bins=self.bins)[0]
+                        self.seen += self.z[p].numel()
+
+                        self.histogram_corrected_alfa += np.histogram(alfa_c.cpu().numpy(), bins=self.bins_alfa)[0]
+
+                    if self.batch_counter > 700:
+                        plt.figure(figsize=(8, 6))
+                        plt.plot(self.bins[:-1], self.histogram_corrected / self.seen)
+                        plt.fill_between(self.bins[:-1], self.histogram_corrected / self.seen,
+                                         [0] * len(self.histogram_corrected), alpha=.8)
+                        # plt.yscale("log")
+                        plt.gray()
+                        plt.ylabel("Frequency")
+                        plt.xlabel("z")
+                        plt.grid()
+                        plt.title("Distribution of proposed step z")
+                        plt.show()
+
+                        # print(alfa_c)
+                        plt.plot(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen)
+                        plt.fill_between(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen,
+                                         [0] * len(self.histogram_corrected_alfa), alpha=.6)
+                        plt.yscale("log")
+                        plt.grid()
+                        plt.ylabel("Frequency")
+                        plt.xlabel(r"$\hat\alpha$")
+                        plt.title(r"Distribution of correcting factor $\alpha$")
+                        plt.show()
+                        exit()
+
+                    # if random.random() < 1/100:
+                    #     print(alfa_c[0])
+                    #     print(tau[0])
+                    #     input()
+
                     probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p] * alfa_c))
                 else:
                     probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p]))
