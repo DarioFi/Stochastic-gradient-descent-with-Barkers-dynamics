@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from torch.nn import functional as f
 
@@ -20,6 +21,8 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
             # data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = model(data)
+            # print(torch.max(output, dim=1)[0])
+            # print(torch.max(output))
             loss = f.cross_entropy(output, target)
             loss.backward()
 

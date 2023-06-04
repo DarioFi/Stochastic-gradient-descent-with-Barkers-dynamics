@@ -144,10 +144,10 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
             "stepsize": global_stepsize,
         }
         import json
-        with open("logs.json", 'r') as file:
+        with open("logs_old.json", 'r') as file:
             j = json.load(file)
             j.append(data)
-        with open("logs.json", "w") as file:
+        with open("logs_old.json", "w") as file:
             json.dump(j, file, indent=4)
 
     if plot_temp:
@@ -185,28 +185,30 @@ nnet = models.LargeModel
 check_time = False
 
 if __name__ == '__main__':
-    # main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+
+
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    if check_time:
-        for nnet in [models.LargeModel, ]:
-            print(f"{nnet.__name__}")
-            hit_sgdb = []
-            for iter in range(6):
-                print(f"{iter=} - SGDB")
-                x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                         alfa_target=1 / 10, quit_thresh=True)
-                hit_sgdb.append(x)
+    # if check_time:
+    #     for nnet in [models.LargeModel, ]:
+    #         print(f"{nnet.__name__}")
+    #         hit_sgdb = []
+    #         for iter in range(6):
+    #             print(f"{iter=} - SGDB")
+    #             x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+    #                      alfa_target=1 / 10, quit_thresh=True)
+    #             hit_sgdb.append(x)
+    #
+    #         hit_adam = []
+    #         for iter in range(6):
+    #             print(f"{iter=} - ADAM")
+    #             x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
+    #                      alfa_target=1 / 10, quit_thresh=True)
+    #             hit_adam.append(x)
+    #
+    #         print(f"{nnet.__name__} - {hit_sgdb=}")
+    #         print(f"{nnet.__name__} - {hit_adam=}")
 
-            hit_adam = []
-            for iter in range(6):
-                print(f"{iter=} - ADAM")
-                x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-                         alfa_target=1 / 10, quit_thresh=True)
-                hit_adam.append(x)
-
-            print(f"{nnet.__name__} - {hit_sgdb=}")
-            print(f"{nnet.__name__} - {hit_adam=}")
-
-    else:
-        nnet = models.CnnMedium
-        main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=False, alfa_target=1 / 10)
+    # else:
+    #     nnet = models.CnnMedium
+    #     main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=False, alfa_target=1 / 10)

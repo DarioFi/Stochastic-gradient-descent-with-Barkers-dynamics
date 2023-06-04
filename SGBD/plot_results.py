@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-with open("logs.json", "r") as file:
+with open("logs_old.json", "r") as file:
     data = json.load(file)
 
 allowed_models = ["resnet", ]

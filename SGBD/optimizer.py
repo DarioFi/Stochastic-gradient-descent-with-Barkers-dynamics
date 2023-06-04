@@ -172,7 +172,11 @@ class SGBD(Optimizer):
                 # region Temperature correction
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
+                if self.log_temp[p] > 30:
+                    self.log_temp[p] = 30
 
+                # if torch.isnan(self.log_temp[p]) == True:
+                #     debug = 0
                 # self.global_stepsize[p] -= self.gamma / 100 * (alfa - self.alfa_target)
 
                 # print(self.log_temp[p], self.log_global_stepsize[p])
@@ -201,6 +205,11 @@ class SGBD(Optimizer):
 
                 temp_var = (torch.ceil(sampled) * 2 - 1) * self.z[p]
                 p.data = p.data + temp_var * self.global_stepsize
+
+                # print(torch.any(torch.isnan(temp_var * self.global_stepsize)))
+                # if torch.any(torch.isnan(temp_var * self.global_stepsize)) == True:
+                #     debug = 0
+                #     print("orcodio")
 
         # region Replace old models in ensemble
         if len(self.ensemble) > 0:

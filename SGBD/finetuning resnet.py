@@ -14,22 +14,23 @@ if __name__ == '__main__':
         return mod
 
 
-    def pre_trained_model(use_cifar=True):
+    def pre_trained_model(*args, **kwargs):
         mod = resnet18(weights=ResNet18_Weights.IMAGENET1K_V1)
         mod.fc = nn.Linear(512, 10, bias=True)
         mod.__class__.__name__ = "Resnet pretrained"
         return mod
 
 
-    # with torch.autograd.set_detect_anomaly(True):
-    if True:
-        # main.main(True, pre_trained_model, dataset=DS, global_stepsize=.0001, write_logs=True, epochs=E,
-        #           alfa_target=1 / 10)
+    # main.main(True, pre_trained_model, dataset=DS, global_stepsize=1, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.1, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.01, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.001, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, pre_trained_model, dataset=DS, global_stepsize=.0001, write_logs=True, epochs=E, alfa_target=1 / 10)
 
-        # exit()
-        main.main(True, std_model, dataset=DS, global_stepsize=.1, write_logs=True, epochs=E, alfa_target=1 / 10)
-        main.main(True, std_model, dataset=DS, global_stepsize=.01, write_logs=True, epochs=E, alfa_target=1 / 10)
-        main.main(True, std_model, dataset=DS, global_stepsize=.005, write_logs=True, epochs=E, alfa_target=1 / 10)
-        main.main(True, std_model, dataset=DS, global_stepsize=.001, write_logs=True, epochs=E, alfa_target=1 / 10)
-        main.main(True, std_model, dataset=DS, global_stepsize=.0001, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, std_model, dataset=DS, global_stepsize=1, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, std_model, dataset=DS, global_stepsize=.1, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, std_model, dataset=DS, global_stepsize=.01, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, std_model, dataset=DS, global_stepsize=.001, write_logs=True, epochs=E, alfa_target=1 / 10)
+    main.main(True, std_model, dataset=DS, global_stepsize=.0001, write_logs=True, epochs=E, alfa_target=1 / 10)
+
     # main.main(False, pre_trained_model, dataset=DS, global_stepsize=.0, write_logs=True, epochs=E, alfa_target=1 / 10)
