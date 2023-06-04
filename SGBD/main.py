@@ -175,7 +175,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
 
 compile_model = True
 
-EPOCHS = 20
+EPOCHS = 15
 ensemble_size = 0
 DS = "CIFAR10"
 
@@ -208,9 +208,5 @@ if __name__ == '__main__':
             print(f"{nnet.__name__} - {hit_adam=}")
 
     else:
-        nnet = models.LargeModel
-        main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=False, alfa_target=1 / 10)
-        # nnet = models.CnnMedium
-        # main(True, nnet, corrected=False, extreme=True, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
-        # nnet = models.LogisticReg
-        # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 10)
+        nnet = models.CnnMedium
+        main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=False, alfa_target=1 / 10)
