@@ -43,12 +43,12 @@ class SGBD(Optimizer):
         self.step_size = step_size
 
         size = 10 ** 4
-        self.range = (-.001, 0.001)
+        self.range = (-.0015, 0.0015)
         self.bins = np.linspace(*self.range, size + 1)
         self.histogram_corrected = np.zeros((size,))
 
-        self.bins_alfa = np.linspace(1., 1.000015, 25 + 1)
-        self.histogram_corrected_alfa = np.zeros((25,))
+        self.bins_alfa = np.linspace(1., 1.00002, 35 + 1)
+        self.histogram_corrected_alfa = np.zeros((35,))
         self.seen = 0
 
         # state vars
@@ -135,26 +135,28 @@ class SGBD(Optimizer):
 
                     if self.batch_counter > 700:
                         plt.figure(figsize=(8, 6))
-                        plt.plot(self.bins[:-1], self.histogram_corrected / self.seen)
-                        plt.fill_between(self.bins[:-1], self.histogram_corrected / self.seen,
-                                         [0] * len(self.histogram_corrected), alpha=.8)
-                        # plt.yscale("log")
-                        plt.gray()
-                        plt.ylabel("Frequency")
-                        plt.xlabel("z")
-                        plt.grid()
-                        plt.title("Distribution of proposed step z")
-                        plt.show()
+                        fig, ax = plt.subplots(ncols=2, figsize=(12, 5))
+                        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=0.3)
+
+                        ax[0].plot(self.bins[:-1], self.histogram_corrected / self.seen)
+                        ax[0].fill_between(self.bins[:-1], self.histogram_corrected / self.seen,
+                                           [0] * len(self.histogram_corrected), alpha=.8)
+                        # ax[0].set_yscale("log")
+
+                        ax[0].set_ylabel("Frequency")
+                        ax[0].set_xlabel("z")
+                        ax[0].grid()
+                        ax[0].set_title("Distribution of proposed step z")
 
                         # print(alfa_c)
-                        plt.plot(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen)
-                        plt.fill_between(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen,
-                                         [0] * len(self.histogram_corrected_alfa), alpha=.6)
-                        plt.yscale("log")
-                        plt.grid()
-                        plt.ylabel("Frequency")
-                        plt.xlabel(r"$\hat\alpha$")
-                        plt.title(r"Distribution of correcting factor $\alpha$")
+                        ax[1].plot(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen)
+                        ax[1].fill_between(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen,
+                                           [0] * len(self.histogram_corrected_alfa), alpha=.6)
+                        ax[1].set_yscale("log")
+                        ax[1].grid()
+                        ax[1].set_ylabel("Frequency (log-scale)")
+                        ax[1].set_xlabel(r"$\hat\alpha$")
+                        ax[1].set_title(r"Distribution of correcting factor $\alpha$")
                         plt.show()
                         exit()
 
