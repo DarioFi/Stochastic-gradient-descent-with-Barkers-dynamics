@@ -144,10 +144,10 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
             "stepsize": global_stepsize,
         }
         import json
-        with open("logs_old.json", 'r') as file:
+        with open("logs.json", 'r') as file:
             j = json.load(file)
             j.append(data)
-        with open("logs_old.json", "w") as file:
+        with open("logs.json", "w") as file:
             json.dump(j, file, indent=4)
 
     if plot_temp:

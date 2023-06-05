@@ -4,7 +4,7 @@ import math
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
-with open("logs_old.json", "r") as file:
+with open("logs.json", "r") as file:
     data = json.load(file)
 
 allowed_models = ["resnet", ]
@@ -20,7 +20,9 @@ print(len(data))
 fig, ax = plt.subplots(2, 2, figsize=(12, 12))
 
 # fig.tight_layout()
+
 plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=0.3)
+
 i = 0
 
 # le run erano 0.1, 0.01, e 0.001
@@ -28,7 +30,7 @@ i = 0
 
 plot_epochs = 10 ** 10
 lrs = [0, 1, .1, .01]
-for obs in data[-4:]:
+for obs in data[:]:
 
     if not (obs['corrected'] in corrected):
         continue
@@ -44,8 +46,8 @@ for obs in data[-4:]:
     if "*" not in allowed_algs:
         if any(x not in obs["algorithm"].lower() for x in allowed_algs):
             continue
-    ax1 = ax[i // 2][i % 2]
-    # fig, ax1 = plt.subplots()
+    # ax1 = ax[i // 2][i % 2]
+    fig, ax1 = plt.subplots()
     i += 1
     ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -85,4 +87,4 @@ for obs in data[-4:]:
     # plt.ylim(bottom=1e-10)
 
     ax1.grid()
-plt.show()
+    plt.show()
