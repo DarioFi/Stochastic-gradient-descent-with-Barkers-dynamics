@@ -162,18 +162,16 @@ class SGBD(Optimizer):
                 # Temperature update
                 alfa = abs(probabilities - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
+
+                # clip temperature
                 if self.log_temp[p] > 30:
                     self.log_temp[p] = 30
 
                 # logs and plots probabilites, used for data collection
-                if torch.isnan(self.log_temp[p]) == True:
-                    debug = 0
-                    return None
-
-                self.temperature_history[p][0].append(self.batch_counter)
-                self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
-
                 if LOG_PROB:
+                    self.temperature_history[p][0].append(self.batch_counter)
+                    self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
+
                     if self.batch_counter / self.batch_n >= 1 and self.probabilities[p] is None:
                         self.probabilities[p] = list(probabilities.flatten())
                         self.isp[p] = True
