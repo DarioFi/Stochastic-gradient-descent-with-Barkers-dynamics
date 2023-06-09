@@ -179,7 +179,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
 
         fig, ax1 = plt.subplots()
 
-        plt.title(f"CNN trained on CIFAR10 with rate = {optimizer.gamma_rate}")
+        plt.title(f"ResNet18 temperatures")
         # plt.title("Temperatures")
         for data in hist.values():
             ax1.plot(data[0], data[1])

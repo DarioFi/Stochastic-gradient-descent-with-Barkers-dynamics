@@ -83,7 +83,7 @@ class SGBD(Optimizer):
         # adaptive size correction for temperature
         self.log_temp = dict()
         self.gamma_base = 1
-        self.gamma_rate = 0.001
+        self.gamma_rate = 0.1
         self.gamma = self.gamma_base
         self.alfa_target = alfa_target
         self.temperature_history = dict()
@@ -166,6 +166,13 @@ class SGBD(Optimizer):
                     self.log_temp[p] = 30
 
                 # logs and plots probabilites, used for data collection
+                if torch.isnan(self.log_temp[p]) == True:
+                    debug = 0
+                    return None
+
+                self.temperature_history[p][0].append(self.batch_counter)
+                self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
+
                 if LOG_PROB:
                     if self.batch_counter / self.batch_n >= 1 and self.probabilities[p] is None:
                         self.probabilities[p] = list(probabilities.flatten())

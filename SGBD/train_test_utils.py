@@ -29,9 +29,14 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
 
             nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)
 
-            optimizer.step()
+            res = optimizer.step()
+            if res is None:
+                train_loss.append(1.0)
+                break
             if train_loss is not None:
                 train_loss.append(loss.item())
+
+
             if batch_idx % log_interval == 0 and log:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
