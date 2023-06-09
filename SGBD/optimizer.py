@@ -61,7 +61,7 @@ class SGBD(Optimizer):
         # adaptive size correction for temperature
         self.log_temp = dict()
         self.gamma_base = 1
-        self.gamma_rate = 0.001
+        self.gamma_rate = 0.1
         self.gamma = self.gamma_base
         self.alfa_target = alfa_target
         self.temperature_history = dict()
@@ -172,16 +172,17 @@ class SGBD(Optimizer):
                 # region Temperature correction
                 alfa = abs(probs - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
-                if self.log_temp[p] > 30:
-                    self.log_temp[p] = 30
+                # if self.log_temp[p] > 30:
+                #     self.log_temp[p] = 30
 
-                # if torch.isnan(self.log_temp[p]) == True:
-                #     debug = 0
+                if torch.isnan(self.log_temp[p]) == True:
+                    debug = 0
+                    return None
                 # self.global_stepsize[p] -= self.gamma / 100 * (alfa - self.alfa_target)
 
                 # print(self.log_temp[p], self.log_global_stepsize[p])
-                # self.temperature_history[p][0].append(self.batch_counter)
-                # self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
+                self.temperature_history[p][0].append(self.batch_counter)
+                self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
                 # endregion
 
                 if LOG_PROB:

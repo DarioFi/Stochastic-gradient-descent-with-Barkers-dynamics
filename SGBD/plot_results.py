@@ -7,8 +7,8 @@ from matplotlib.ticker import MaxNLocator
 with open("logs.json", "r") as file:
     data = json.load(file)
 
-allowed_models = ["resnet", ]
-# allowed_models = ["resnet pre", ]
+# allowed_models = ["resnet non", ]
+allowed_models = ["resnet pre", ]
 allowed_algs = ["*"]
 # allowed_algs = ["sgbd"]
 lower_bound_epochs = 12
@@ -17,11 +17,13 @@ corrected = (True, False)
 # corrected = (False,)
 print(len(data))
 
+
+data.sort(key=lambda x: (x["algorithm"],-x["stepsize"]))
 fig, ax = plt.subplots(2, 2, figsize=(12, 12))
 
 # fig.tight_layout()
 
-plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=0.3)
+plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.3, hspace=0.25)
 
 i = 0
 
@@ -46,8 +48,11 @@ for obs in data[:]:
     if "*" not in allowed_algs:
         if any(x not in obs["algorithm"].lower() for x in allowed_algs):
             continue
-    # ax1 = ax[i // 2][i % 2]
-    fig, ax1 = plt.subplots()
+
+    if i > 3: continue
+    ax1 = ax[i // 2][i % 2]
+    # ax1 = ax[i]
+    # fig, ax1 = plt.subplots()
     i += 1
     ax1.xaxis.set_major_locator(MaxNLocator(integer=True))
 
@@ -65,10 +70,10 @@ for obs in data[:]:
     # ax2.plot(obs["test_accuracies_ensemble"], color="tab:purple", label="Accuracy ensemble")
 
     if "Adam" in obs['algorithm']:
-        plt.title(f"{obs['algorithm']}")
+        plt.title(f"{obs['algorithm']}\n stepsize=0.001")
     else:
         plt.title(
-            f"{obs['algorithm']} {obs['model']}\nCorrected={obs['corrected']} Extreme={obs['extreme']} alpha*={obs['alfa_target']} stepsize={obs['stepsize']}")
+            f"{obs['algorithm']}\nalpha*={obs['alfa_target']} stepsize={obs['stepsize']}")
 
     # plt.title(f"SGDB - lr={lrs[i - 1]}")
     # plt.title(f"{obs['model']}\nExtreme={obs['extreme']} alpha*={obs['alfa_target']}")
@@ -87,4 +92,5 @@ for obs in data[:]:
     # plt.ylim(bottom=1e-10)
 
     ax1.grid()
-    plt.show()
+plt.savefig("temp.png",bbox_inches='tight')
+# plt.show()

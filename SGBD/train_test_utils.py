@@ -39,7 +39,11 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
             #     total_norm = total_norm ** 0.5
             #     print(total_norm)
             #     input()
-            optimizer.step()
+            res = optimizer.step()
+            if res is None:
+                train_loss.append(1.0)
+                break
+
             if train_loss is not None:
                 train_loss.append(loss.item())
             if batch_idx % log_interval == 0 and log:

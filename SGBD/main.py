@@ -13,6 +13,7 @@ from matplotlib import pyplot as plt
 
 from torch.optim.lr_scheduler import StepLR
 from torchsummary import summary
+from torchvision.models import resnet18
 
 from train_test_utils import train, test
 from SGBD.datasets import get_mnist, get_cifar10
@@ -155,7 +156,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
 
         fig, ax1 = plt.subplots()
 
-        plt.title(f"CNN trained on CIFAR10 with rate = {optimizer.gamma_rate}")
+        plt.title(f"ResNet18 temperatures")
         # plt.title("Temperatures")
         for data in hist.values():
             ax1.plot(data[0], data[1])
@@ -175,7 +176,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
 
 compile_model = True
 
-EPOCHS = 15
+EPOCHS = 10
 ensemble_size = 0
 DS = "CIFAR10"
 
@@ -185,8 +186,14 @@ nnet = models.LargeModel
 check_time = False
 
 if __name__ == '__main__':
-    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+    def std_model(use_cifar=True):
+        mod = resnet18(num_classes=10)
+        mod.__class__.__name__ = "Resnet non pretrained"
+        return mod
 
+
+    main(True, std_model, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=False, plot_temp=True,
+         alfa_target=1 / 4)
 
     # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
     # if check_time:
