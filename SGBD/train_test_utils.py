@@ -5,7 +5,7 @@ from torch.nn import functional as f
 loaded_data = None
 
 
-def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True, train_loss=None):
+def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=True, train_loss=None, corrects=None):
     model.train()
     global loaded_data
     if loaded_data is None:
@@ -18,27 +18,17 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
         correct, size = 0, 0
         for batch_idx, (data, target) in loaded_data:
             size += len(data)
-            # data, target = data.to(device), target.to(device)
             optimizer.zero_grad()
             output = model(data)
-            # print(torch.max(output, dim=1)[0])
-            # print(torch.max(output))
             loss = f.cross_entropy(output, target)
             loss.backward()
 
             pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            if corrects is not None:
+                corrects.append(pred.eq(target.view_as(pred)).sum().item())
 
             nn.utils.clip_grad_value_(model.parameters(), clip_value=1.0)
 
-            # if epoch > 1:
-            #     total_norm = 0
-            #     for p in model.parameters():
-            #         param_norm = p.grad.detach().data.norm(2)
-            #         total_norm += param_norm.item() ** 2
-            #     total_norm = total_norm ** 0.5
-            #     print(total_norm)
-            #     input()
             optimizer.step()
             if train_loss is not None:
                 train_loss.append(loss.item())
@@ -46,7 +36,10 @@ def train(model, device, train_loader, optimizer, epoch, log_interval=None, log=
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                     epoch, batch_idx * len(data), len(train_loader.dataset), 100. * batch_idx / len(train_loader),
                     loss.item()))
-        return correct / size
+
+        for i in range(len(corrects)):
+            corrects[i] /= size
+
 
 loaded_test = None
 

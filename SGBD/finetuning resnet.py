@@ -1,3 +1,4 @@
+"""This file has been used to run tests for the finetuing of resnet18"""
 import torch
 from torch import nn
 from torchvision.models import resnet18, ResNet18_Weights
@@ -8,6 +9,7 @@ DS = "CIFAR10"
 E = 15
 
 if __name__ == '__main__':
+    # Those functions are usde to instantiate the models, load the weights and set the last layer to the correct size
     def std_model(use_cifar=True):
         mod = resnet18(num_classes=10)
         mod.__class__.__name__ = "Resnet non pretrained"
@@ -34,5 +36,3 @@ if __name__ == '__main__':
     main.main(True, std_model, dataset=DS, global_stepsize=.001, write_logs=True, epochs=E, alfa_target=1 / 10)
     main.main(True, std_model, dataset=DS, global_stepsize=.0001, write_logs=True, epochs=E, alfa_target=1 / 10)
     main.main(False, std_model, dataset=DS, global_stepsize=0, write_logs=True, epochs=E, alfa_target=1 / 10)
-
-    # main.main(False, pre_trained_model, dataset=DS, global_stepsize=.0, write_logs=True, epochs=E, alfa_target=1 / 10)

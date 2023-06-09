@@ -1,5 +1,7 @@
+"""This file is used to plot the results of the training. It is intended to be modified to plot different combinations of results.
+It uses the logs saved in the json file."""
+
 import json
-import math
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator

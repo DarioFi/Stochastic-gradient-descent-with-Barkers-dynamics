@@ -4,9 +4,6 @@ import time
 import numpy as np
 
 import torch
-import torchvision.models
-# torch._dynamo.config.verbose=True
-
 
 from torch import optim
 from matplotlib import pyplot as plt
@@ -20,16 +17,39 @@ from SGBD.utilities import get_kwargs
 from optimizer import SGBD
 import models
 
+# Set seeds for reproducibility
 torch.manual_seed(2212)
 np.random.seed(2212)
 
 threshold_accuracy_train = 66.6 / 100
+compile_model = True
 
 
 def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_logs=True,
          epochs=4, alfa_target=1 / 4, global_stepsize=1,
-         thermolize_start=0, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0, quit_thresh=False):
-    """Main function that handles the training of the model"""
+         thermolize_start=0, step_size=None, plot_temp=False, sel_prob=1 / 20, ensemble_size=0,
+         quit_thresh=False) -> tuple:
+    """
+    Main function that handles the training of the model. The function is fairly complex and does many things.
+    :param use_sgdb: Whether to use SGDB or Adam
+    :param nnet: Function that returns the model
+    :param corrected: Whether to use the corrected version of SGDB
+    :param extreme: Whether to use the extreme version of SGDB
+    :param dataset: str Dataset to use. Either MNIST or CIFAR10
+    :param write_logs: Whether to write logs to file
+    :param epochs: Number of epochs to train
+    :param alfa_target: Target alfa value, used by the optimizer
+    :param global_stepsize: Global stepsize, used by the optimizer
+    :param thermolize_start: Epoch to start collecting models for the ensemble
+    :param step_size: If None, ignored, otherwise used to set a fix stepsize in SGDB. Used for testing purposes it is quite bad for training
+    :param plot_temp: Whether to plot the temperatures, used to produce plots for the thesis
+    :param sel_prob: Selection probability of the ensemble, used by SGDB
+    :param ensemble_size: Size of the ensemble, used by SGDB, if 0, no ensemble is used
+    :param quit_thresh: Whether to quit training if the accuracy is above threshold_accuracy_train. Used only to collect data about convergence speed
+
+    :return: tuple of (model, optimizer)
+    """
+
     if dataset == "MNIST":
         use_cifar10 = False
     elif dataset == "CIFAR10":
@@ -42,8 +62,9 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
     model = nnet(use_cifar10).to(device)
     model = model.to(device)
 
-    model_name = str(model.__class__.__name__)  # If done after compile gives wrong name
+    model_name = str(model.__class__.__name__)  # If done after compile gives wrong name so it is necessary to save it
 
+    # Load dataset
     if use_cifar10:
         train_loader, test_loader = get_cifar10(train_kwargs, test_kwargs)
         summary(model, (3, 32, 32,))
@@ -51,73 +72,79 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
         train_loader, test_loader = get_mnist(train_kwargs, test_kwargs)
         summary(model, (1, 28, 28,))
 
+    # Compile model if on Linux (compilation is not supported on Windows)
     if "Linux" in platform.platform() and compile_model is True:
         model = torch.compile(model)
 
+    # Initialize optimizer
     ensemble = None
+    scheduler = None
+
     if use_sgdb:
+
+        # Create ensemble and compile it
         ensemble = [nnet(use_cifar10).to(device) for _ in range(ensemble_size)]
         if "Linux" in platform.platform() and compile_model is True:
             ensemble = [torch.compile(x) for x in ensemble]
-        scheduler = None
-        print("N parameters:    ", sum(p.numel() for p in model.parameters()))
-        optimizer = SGBD(model.parameters(), n_params=sum(p.numel() for p in model.parameters()), device=device,
+
+        optimizer = SGBD(model.parameters(), device=device,
                          defaults={}, corrected=corrected, extreme=extreme,
                          ensemble=ensemble, step_size=step_size, alfa_target=alfa_target,
-                         thermolize_epoch=thermolize_start, epochs=epochs, batch_n=len(train_loader),
+                         thermolize_epoch=thermolize_start, batch_size=len(train_loader),
                          select_model=sel_prob, global_stepsize=global_stepsize)
     else:
         optimizer = optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-2)
         scheduler = StepLR(optimizer, step_size=1, gamma=.7)
 
+    # Initialize lists for logging
     train_loss = []
     losses = []
     losses_ensemble = []
-    losses_swa = []
     accuracies = []
-    accuracies_swa = []
     accuracies_ensemble = []
 
-    # swa_model = AveragedModel(model)
-    # swa_start = thermolize_start
-    swa_start = 1000
-
-    crossed = False
-
+    # Training loop
     for epoch in range(1, epochs + 1):
         start = time.time()
+
+        # temp variables for logging
         temp = []
-        hit = 100
-        # for t in optimizer.log_temp.values():
-        #     print(float(t), end=", ")
-        # print("")
-        acc_train = train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp)
+        temp_corrects = []
+
+        # training step
+        print(f"{epoch=}")
+        train(model, device, train_loader, optimizer, epoch, log_interval=25, log=True, train_loss=temp,
+              corrects=temp_corrects)
         train_loss.append(sum(temp) / len(temp))
+        acc_train = sum(temp_corrects)
 
-        print(f"{acc_train=}")
-        if acc_train > threshold_accuracy_train and not crossed:
-            crossed = True
-            hit = epoch
-            if quit_thresh:
-                return hit
+        # quit training if quit_thresh is True and accuracy is above threshold_accuracy_train. Used for data collection
+        print(f"Training accuracy {acc_train=}")
+        if acc_train > threshold_accuracy_train and quit_thresh:
+            print(f"Hit threshold at epoch {epoch}, quitting")
+            return model, optimizer
 
-        if epoch % 1 == 0:
-            print("STD model:   ", end="")
-            l, a, le, ae = test(model, device, test_loader, log=True, test_ensemble=ensemble)
-            losses.append(l)
-            accuracies.append(a)
-            if epoch > thermolize_start:
-                losses_ensemble.append(le)
-                accuracies_ensemble.append(ae)
-            else:
-                losses_ensemble.append(np.nan)
-                accuracies_ensemble.append(np.nan)
+        # testing step
+        print("Testing model:   ", end="")
+        l, a, le, ae = test(model, device, test_loader, log=True, test_ensemble=ensemble)
+        losses.append(l)
+        accuracies.append(a)
 
+        # if epoch > thermolize_start also log ensemble data
+        if epoch > thermolize_start:
+            losses_ensemble.append(le)
+            accuracies_ensemble.append(ae)
+        else:
+            losses_ensemble.append(np.nan)
+            accuracies_ensemble.append(np.nan)
+
+        # log time to have an idea of the length of the training
         print(f"{epoch=} - elapsed time: {round(time.time() - start, 1)}s\n")
 
         if scheduler is not None:
             scheduler.step()
 
+    # print summary of the training
     print(f"Optimizer: {optimizer.__class__}")
     print(f"Parameters: {corrected=} - {extreme=}")
     for i, (l, a) in enumerate(zip(losses, accuracies)):
@@ -129,16 +156,12 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
             "corrected": corrected,
             "extreme": extreme,
             "dataset": dataset,
-            # "algorithm": str(optimizer.__class__.__name__) + " fixed step",
             "algorithm": str(optimizer.__class__.__name__),
             "model": model_name,
             "alfa_target": alfa_target,
             "test_losses": losses,
-            "test_losses_swa": losses_swa,
             "test_losses_ensemble": losses_ensemble,
-            "swa_start": swa_start,
             "test_accuracies": accuracies,
-            "test_accuracies_swa": accuracies_swa,
             "test_accuracies_ensemble": accuracies_ensemble,
             "train_losses": train_loss,
             "stepsize": global_stepsize,
@@ -150,6 +173,7 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
         with open("logs.json", "w") as file:
             json.dump(j, file, indent=4)
 
+    # plot temperatures, used for data collection
     if plot_temp:
         hist = optimizer.temperature_history
 
@@ -173,42 +197,14 @@ def main(use_sgdb, nnet, corrected=False, extreme=False, dataset="MNIST", write_
     return model, optimizer
 
 
-compile_model = True
-
-EPOCHS = 15
-ensemble_size = 0
-DS = "CIFAR10"
-
-# nnet = net_module.hot_loader("modello_epoca3", net_module.LargeModel)
-nnet = models.LargeModel
-
-check_time = False
-
 if __name__ == '__main__':
-    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
+    EPOCHS = 15
+    DS = "CIFAR10"
+    ensemble_size = 0
 
+    nnet = models.LargeModel
 
-    # main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4)
-    # if check_time:
-    #     for nnet in [models.LargeModel, ]:
-    #         print(f"{nnet.__name__}")
-    #         hit_sgdb = []
-    #         for iter in range(6):
-    #             print(f"{iter=} - SGDB")
-    #             x = main(True, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-    #                      alfa_target=1 / 10, quit_thresh=True)
-    #             hit_sgdb.append(x)
-    #
-    #         hit_adam = []
-    #         for iter in range(6):
-    #             print(f"{iter=} - ADAM")
-    #             x = main(False, nnet, corrected=False, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True,
-    #                      alfa_target=1 / 10, quit_thresh=True)
-    #             hit_adam.append(x)
-    #
-    #         print(f"{nnet.__name__} - {hit_sgdb=}")
-    #         print(f"{nnet.__name__} - {hit_adam=}")
+    check_time = False
 
-    # else:
-    #     nnet = models.CnnMedium
-    #     main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=False, alfa_target=1 / 10)
+    main(True, nnet, corrected=True, extreme=False, dataset=DS, epochs=EPOCHS, write_logs=True, alfa_target=1 / 4,
+         ensemble_size=ensemble_size)

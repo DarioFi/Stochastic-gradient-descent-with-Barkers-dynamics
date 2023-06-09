@@ -1,8 +1,15 @@
+"""This file contains the functions to load the datasets."""
+
 import torch
 from torchvision import datasets, transforms
 
 
 def get_mnist(train_kwargs, test_kwargs):
+    """
+    This function loads the MNIST dataset.
+    :param train_kwargs: kwargs to pass to torch.utils.data.DataLoader
+    :param test_kwargs: kwargs to pass to torch.utils.data.DataLoader
+    """
     transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
@@ -18,6 +25,11 @@ def get_mnist(train_kwargs, test_kwargs):
 
 
 def get_cifar10(train_kwargs, test_kwargs):
+    """
+    This function loads the CIFAR10 dataset.
+    :param train_kwargs: kwargs to pass to torch.utils.data.DataLoader
+    :param test_kwargs: kwargs to pass to torch.utils.data.DataLoader
+    """
     transform = transforms.Compose(
         [transforms.ToTensor(),
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])

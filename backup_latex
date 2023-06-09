@@ -9,6 +9,7 @@
 \usepackage{algpseudocode}
 \usepackage{svg}
 \usepackage{wrapfig}
+\usepackage{comment}
 
 \usepackage{float}
 \numberwithin{equation}{section}
@@ -50,8 +51,16 @@ sorting=ynt
 
 \begin{document}
 
-\large 
+\large
 
+\newpage
+\section*{}
+\newpage
+\section*{}
+\newpage
+\section*{}
+\newpage
+\section*{}
 
 \maketitle
 
@@ -60,18 +69,21 @@ sorting=ynt
 \tableofcontents
 
 \newpage
-\section*{}
-\newpage
 
 \section*{Abstract}
 
-\section{Introduction and motivation}
 
-In the last twenty years, neural networks have been widely used to tackle every type of problem. 
-They have revolutionized various fields such as computer vision with Convolutional Nets (CNN), Natural Language Processing with transformer architectures, image generation with Adversarial and Transformer networks, and many others. Those networks are characterized by high dimensional (overparametrized) parameter spaces and very expressive capabilities which together fundamentally differentiate them from classical statistical models.
-In particular, they can learn every regular function, given enough parameters. There are some formal results called Universal approximation theorems that, roughly speaking, tell us that any function $f: \R^N \mapsto \{-1, 1\}$ can be approximated with precision $\epsilon$ arbitrarily small with a Neural network with at least one hidden layer and a non-polynomial activation function. The issue is that there is no easy way to quantify the size of the hidden layer, in the simplest proof it is taken to be exponential, and this statement does not tell us anything about how to find the right parameter configuration. [UNIVERSAL APPROX THM FONTE]. 
+\section{Introduction}
 
-This high expressibility capacity also makes them analytically not tractable therefore there is no theoretical way to find the best parameter configuration (i.e. the one that minimizes the empirical risk). In contrast, simpler models, such as Logistic and Linear regressions, have closed-form solutions or algorithms that are guaranteed to converge to a solution. In light of this, training them becomes a crucial part of the framework. The training can be formulated as an optimization problem similar to the Bayesian statistical setting, so many ideas and concepts are common to the two fields and can be borrowed.
+In the last twenty years, neural networks have been widely used to tackle every type of problem.
+They have revolutionized various fields such as computer vision with Convolutional Nets (CNN), Natural Language Processing with transformer architectures, image generation with Adversarial and Transformer networks, and many others. Those networks are characterized by high dimensional (overparametrized) parameter spaces and very expressive capabilities which, together, fundamentally differentiate them from classical statistical models.
+In particular, they can approximate every regular function, given enough parameters. There are some formal results called Universal approximation theorems that, roughly speaking, state that any function $f: \R^N \mapsto \{-1, 1\}$ can be approximated at an arbitrarily small precision $\epsilon$ with a Neural network with at least one hidden layer and a non-polynomial activation function. The issue is that there is no easy way to quantify the size of the hidden layer, in the simplest proof it is taken to be exponential, however, this statement does not tell us anything about how to find the right parameter configuration for a Neural Network \cite{universal}.
+
+The high expressibility capacity also makes NNs analytically not tractable, therefore, there is no theoretical way to find the best parameter configuration (i.e., the one that minimizes the empirical risk). In contrast, simpler models, such as Logistic and Linear regressions, exhibit closed-form solutions or algorithms that are guaranteed to converge to a solution. Thus, training NNs becomes a crucial part of the framework. The training can be formulated as an optimization problem similar to the Bayesian statistical setting; thus, many ideas and concepts are common to the two fields and can be transferred from one setting to the other.
+
+The non-trivial nature of the training makes it an interesting subject to study: the same network can achieve a wide variety of performances if trained with different algorithms. This motivates the need to study and test multiple approaches.
+
+The algorithm that will be analyzed in this thesis and adapted to train Neural Networks is called Stochastic Gradient Barker Dynamics (SGDB). It consists of a Markov Chain with a specific transition kernel and comes from the statistical field and the formal derivation of this kernel, together with its properties will be introduced rigorously in the Algorithm section.
 
 
 \begin{figure}[H]
@@ -80,80 +92,85 @@ This high expressibility capacity also makes them analytically not tractable the
     \caption{Example of a dense neural network with 5 layers}
     \label{fig:nn}
 \end{figure}
-\subsection{Statistical optimization and Bayesian inference}
+\subsection{The connection between Statistical optimization and Bayesian inference}
 
-In the context of Bayesian statistics one usually wants to compute the distribution of the posterior of the parameter $\theta$ which, assuming an i.i.d. sample that does not depend on $\theta$, is given by 
+In the context of Bayesian statistics one usually wants to compute the distribution of the posterior of the parameter $\theta$. Assuming an i.i.d. sample that does not depend on $\theta$, the distribution is implicitly given by
 
-$$f(\theta | X, Y) = \frac{\prod_if(y_i|x_i,\theta)}{z}p(\theta)$$ 
+\begin{equation}
+f(\theta | X, Y) = \frac{\prod_if(y_i|x_i,\theta)}{z}p(\theta)
+\end{equation}
 
-where $X=\{x_1, x_2,...\}$ is the data, $p(\theta)$ is the prior and $z$ is a normalization constant that only depends on the given dataset $X$.
-With the exception of some simple models (Linear regressions, ANOVA, ...) computing $z$ is often not analytically possible and computationally expensive so there are two main workarounds.
-The first is to only find the most likely value (MLE) of $\theta$ which can be shown to be an unbiased estimator \cite{Bijma} and reduces to solving an optimization problem in $\theta$ in which $z$ does not need to be computed.
+where $X=\{x_1, x_2,...\}$ is the data, $p(\theta)$ is the prior and $z$ a normalization constant that only depends on $X$.
+With the exception of some simple models (Linear regressions, ANOVA, ...) computing $z$ is often not analytically possible and numerically expensive. However, there are two main workarounds.
+The first is to only find the most likely value (MLE) of $\theta$, which can even be shown to be an unbiased estimator, \cite{Bijma} and reduces to solving an optimization problem in $\theta$ in which $z$ does not need to be computed.
 The second approach is to try to sample from the unnormalized distribution $p(\theta|X)= f(X|\theta)p(\theta)$ which gives a set of parameters $\theta_1, \theta_2,...$ that can later be used for predictions.
-[CONTROLLA BENE CHE STAI DICENDO E VEDI SE VA BENE STA PARENTESI]
-Luckily for a lot of models, the posterior distribution is convex so often it is possible to approximate the solution with arbitrary precision and one has the guarantee that it is indeed the optimal value and various software that implement (STATA, STAN, and similar all implement a lot of MCMC and gradient-based methods)
+Luckily for a number of models, the posterior distribution $f(\theta| X,Y)$ is convex so often it is possible to approximate the solution with arbitrary precision and guarantee that it is indeed the optimal value. There is a lot of software that implements (STATA, STAN, and similar all exploit MCMC and gradient-based methods) such an approach.
 
 
-\subsection{Training NN}
-To train a NN the usual framework is the following: one minimizes the loss defined as:
-
-$$L(\theta) = \frac{1}{N}\sum_i \mathcal{L}(f(x_i, \theta),\hat y_i)$$
+\subsection{Training Neural Networks}
+The usual framework to train a Neural Network is to minimize the loss:
+\begin{equation}
+L(\theta) = \frac{1}{N}\sum_i \mathcal{L}(f(x_i, \theta),\hat y_i)
+\end{equation}
 
 where $\mathcal{L}$ is the error function (for example cross-entropy or log loss in the case of classification), $N$ is the size of the dataset, $x_i$ are the datapoints and $\hat y$ is the true value.
 
-As one can observe the two problems are indeed similar. The differences are the absence of a prior, which is often added in the form of different equivalent regularizations, and the loss not being a probability, even though it can be interpreted in a probabilistic sense as a log-likelihood in many cases. [CONTROLLA STO CLAIM] Those problems are usually tackled by optimizing using gradient based methods [FONTE].
+Training a NN and computing the Bayesian posterior of a model are indeed two similar problems. The differences are the absence of a prior, which is often added in the form of different equivalent regularizations, and the loss not being a probability, even though it can be interpreted in a probabilistic sense as a log-likelihood in many cases (for example the weight decay used by Adam is equivalent to a Gaussian prior). Those problems are usually tackled by optimizing using gradient based methods \cite{}, as will be discussed in the following sections.
 
 
 
 \subsection{What is Gradient Descent}
-Gradient descent is the fundamental building block of almost all gradient based optimization algorithms [FONTE]. The simplest setting in which it can be used is as follows: minimize a given function $f: \R^N \mapsto \R$ which is differentiable with gradient $\nabla f: \R^N \mapsto \R^N$ on the domain $\R^N$.
+Gradient descent is the fundamental building block of almost all gradient based optimization algorithms, the idea is to interpret the gradient as the direction of maximum increase/decrease and  to move along such path. The simplest setting in which gradient descent (GD) can be used is to minimize a given function $f: \R^N \mapsto \R$, which is differentiable, with gradient $\nabla f: \R^N \mapsto \R^N$ on the domain $\R^N$.
 
-\begin{algorithm}    
+\begin{algorithm}
 \caption{Vanilla Gradient Descent (GD)}\label{alg:vanilla GD}
 \begin{algorithmic}
 \Input {$x_0$, $\nabla f$, $T$, $\gamma$}
-\For {$t=1,...,T$} 
+\For {$t=1,...,T$}
   \State $x_t = x_{t-1} -\gamma * \nabla f(x_t)$
 \EndFor
 \end{algorithmic}
 \end{algorithm}
 
-When $f$ is convex it is possible to show that the algorithm will find a global minimum provided the stepsize $\gamma$ is small enough. If one assumes strong convexity or L-smoothness it is possible to show strong upper bounds on the time of convergence and those results motivate the possibility of applying this algorithm also to non-convex problems. [FONTE] This algorithm is very flexible and, with few modifications, it can be extended to cases of constrained optimization (optimization on manifolds, linear programming, ...).
-[AGGIUNGERE DI PIÙ E SCRIVERE MEGLIO QUI]
+If $f$ is convex it is possible to show that the algorithm will find a global minimum provided that the stepsize $\gamma$ is small enough. If one assumes strong convexity or L-smoothness it is possible to show strong upper bounds on the time of convergence. Those results motivate the possibility of applying this algorithm also to non-convex problems \cite{convex}. GD is very flexible and, with few modifications, it can be extended to cases of constrained optimization (optimization on manifolds, linear programming, ...), online optimization (OCO), stochastic optimization, etc.
 
 
-\subsection{GD as  MCMC}
-As one can observe each iteration of GD only depends on the previous $x_t$ so it can be interpreted as a (deterministic) Markov chain. The general idea is that one can add some noise to the algorithm in order to design a MC with a specific stationary distribution, then let the MC converge and sample from there. This has been done widely in statistical physics to study the macroscopic properties of a system, one of the most famous algorithms (and foundation block of many methods) being the Metropolis-Hasting.
-In the case of SGDB, the target distribution will not be exact as there is a first-order approximation that produces a tampered distribution which will be covered later.
+\subsection{Gradient Descent as a Markov Chain Monte Carlo}
+Each iteration of GD only depends on the previous $x_t$ therefore it can be interpreted as a (deterministic) Markov chain. The general idea is that one can add some noise to the algorithm to design a MC with a specific stationary distribution, then let the MC converge and sample from the asymptotic behavior. This has been done widely in statistical physics to study the macroscopic properties of a system, one of the most famous algorithms (and foundation block of many methods) being the Metropolis-Hasting.
+In the specific case of SGDB, the target distribution will not be exact as there is a first-order approximation in the kernel that produces a tampered distribution which will be covered in the section about the formal derivation.
 
 
-\subsection{Non convex case}
+\subsection{Neural Networks training with gradient descent}
 
 The main algorithms that have been used for Neural Networks training are variations of gradient descent. In this thesis, the performance of the Stochastic Gradient Barker Dynamics Algorithm will be analyzed and compared to ADAM which is the current state of the art.
 
-It is possible to naively try to train NN using gradient descent but a few problems arise:
+It is possible to naively train NN using gradient descent, but some (insightful) problems arise:
 \begin{itemize}
-    \item Computing the gradient can be expensive and scales as $O(N)$
-    \item Usually $\mathcal{L}$ is convex but $f$ is highly non-convex so GD can get stuck in local minima
+    \item Computing the gradient can be expensive as it scales as $O(N)$
+    \item The loss $\mathcal{L}$ is highly non-convex for any non-trivial Neural Network (so at least 1 hidden layer and a non-linear activation function) so GD can get stuck in local minima
     \item The scale of the parameters is non-homogeneous so having the same stepsize for each coordinate can cause problems
-    \item The parameter space is highly dimensional so the loss landscape is very complex and difficult to explore efficiently
+    \item The parameter space is high-dimensional so the loss landscape is very sharp and difficult to explore efficiently
 \end{itemize}
 
-In light of these problems, the most used algorithms are ADAM \cite{Adam} and similar variations which add noise and momentum [AGGIUNGI REF].
+To tackle these problems, the most used algorithms are ADAM \cite{Adam} and similar variations which add noise and momentum (such as SGD combined with Nesterov momentum) \cite{nesterov}.
 
 \subsection{Previous literature for Neural Network training}
 
+In the literature, there are many analyses of optimization algorithms from the perspective of Markov Chains and Bayesian inference. For example in \cite{MCMC_SGD} some theoretical results on how to use SGD to compute bayesian posteriors are shown.
+A bayesian approach for Neural Network has been applied widely in research but not in industrial solutions due to a variety of factors. In \cite{posterioribayesNN} the authors explain how the exact posterior of a Bayesian NN is not the best predictor and how sharpening the posterior helps the accuracy. In the paper the authors talk about reducing the "temperature" to sharpen the distribution and a similar concept will be applied also to SGDB but in this context the temperature needs to be increased to achieve the same result (but it is merely a matter of naming).
 
+[Parla di quello sulle BNN dopo averlo letto e capito]
 
+There are a few problems with those analysis. The first is that MCMC are properly studied only for relatively low-dimensional tasks, while NN can reach to billions of parameters, and this includes SGDB which will be properly modified. The other issue is in the non-practicality of computing Bayes posterior with HMC or other MCMC. These algorithms are very slow and from an operative point of view it would be faster to get a bigger network and train that with Adam or SGD. A reasonable approach is to combine both ideas and perform an optimization task, in the same fashion as SGD but using a MCMC algorithm that will explore the parameter space more extensively. As shown later in this way the running time are not really affected while the quality of the prediction can increase in a lot of cases.
 \section{Algorithm}
 
-The algorithm that will be taken into analysis is Stochastic Gradient Barker Dynamics. The idea is to perform a gradient-based MCMC that converges to an approximation of the target distribution using the Barker proposal.
+The algorithm taken into analysis is the Stochastic Gradient Barker Dynamics. The idea is to perform a gradient-based MCMC that converges to an approximation of the target distribution using Barker proposal.
 
-\begin{algorithm}    
+\begin{algorithm}
 \caption{Barker Proposal in one dimension}\label{alg:barker proposal}
 \begin{algorithmic}
 \Input {$\theta_0$, $\sigma$, $\nabla f$}
-\For {$t=1,...,T$} 
+\For {$t=1,...,T$}
     \State Draw $z \sim N(0, \sigma)$
     \State Define $p = \frac{\displaystyle 1}{\displaystyle 1+ \exp{(-z\nabla f(\theta_{t-1}))}}$
     \State Set $b=1$ with probability $p$ and $b=0$ otherwise
@@ -164,18 +181,18 @@ The algorithm that will be taken into analysis is Stochastic Gradient Barker Dyn
 
 \subsection{Formal derivation}
 
-The idea behind those MCMC methods is to build a Markov Chain whose invariant distribution coincides with the target distribution one wants to achieve. This is done by finding functions that satisfy the well-known \textit{detailed balance} equations:
+The idea behind MCMC methods is to build a Markov Chain whose invariant distribution coincides with the target distribution one wants to achieve. This is done by finding functions that satisfy the well-known \textit{detailed balance} equations:
 
 \begin{equation}
     \frac{\pi(y)q(y,x)}{\pi(x)q(x,y)} = t(x,y) = 1
 \end{equation}
 
-Where $Q(x, A) := \int_Aq(x,y)dy$ is the transition kernel of the MC. Usually one has a kernel $q$ that does not satisfy the detailed balance conditions and wants to build a chain on top of it. A simple but analytically intractable way is to define:
+Here $Q(x, A) := \int_Aq(x,y)dy$ is the transition kernel of the MC. Usually one has a kernel $q$ that does not satisfy the detailed balance conditions and wants to build a chain on top of it. A simple but analytically intractable way is to define:
 \begin{align}
     p(x,y) :&= g(t(x,y))q(x,y) \\
     g(t) &= tg(1/t) \label{balancing_condition}
 \end{align}
-And it is possible to show that this new $p$ satisfies detailed balance, but it is not guaranteed to be a normalized probability distribution and this becomes a big issue.  
+It is possible to show that this new $p$ satisfies detailed balance, but it is not guaranteed to be a normalized probability distribution, indeed a serious issue.
 One possible solution is the well-known Metropolis-Hastings acceptance rule defined as follows:
 
 \begin{align}
@@ -183,7 +200,7 @@ One possible solution is the well-known Metropolis-Hastings acceptance rule defi
     g_h(t(x,y)) &= \min\left( 1, \frac{\pi(y)q(y,x)}{\pi(x)q(x,y)} \right)
 \end{align}
 
-Another approach is the one used for the Barker proposal: it is possible to build a jump process for which transitions between two points $(x, y)$ happen at rate $p(x, y)$. This means that if the chain is at a point $x$ it will stay there for a time $t \sim Exp(\lambda(x))$ where
+Another approach is the one used for the Barker proposal: it is possible to build a jump process for which transitions between two points $(x, y)$ happen at a rate $p(x, y)$. This means that if the chain is at a point $x$ it will stay there for a time $t \sim Exp(\lambda(x))$ where
 \begin{equation}
     \lambda(x) = \int p(x,y)dy
 \end{equation}
@@ -195,12 +212,12 @@ And then move to another point via the Jump kernel $J$ defined as:
 \end{equation}
 One can note that this jump kernel $J$ has invariant distribution proportional to $\lambda(x)\pi(x)$ and if $\lambda$ is constant then $J$ is $\pi$-reversible. By approximating $t(x,y)$ it is possible to find a good constant jump rate process for a generic $\lambda$.
 
-The way the authors [CITA AUTORI] proceed is to first restrict the analysis to the family of transition densities for which $q(x,y) = q(x-y)$ and $q(x,y) = q(y,x)$ hold. Then $t(x,y) = \frac{\pi(y)}{\pi(x)}$  and the following Taylor expansion holds:
+The way \cite{SGDB} proceed is to first restrict the analysis to the family of transition densities for which $q(x,y) = q(x-y)$ and $q(x,y) = q(y,x)$ hold. Then $t(x,y) = \frac{\pi(y)}{\pi(x)}$  and the following Taylor expansion holds:
 
 \begin{equation}
     t(x,y) = \frac{\pi(y)}{\pi(x)} = \exp({\log\pi(y) - \log\pi(x)}) \approx \exp((y-x)\nabla \pi(x))
 \end{equation}
-Setting $z:=y-x$ one defines: 
+Setting $z:=y-x$ one defines:
 \begin{equation}
     t^*_x(z):=e^{\displaystyle z\nabla\pi(x)} = \frac{1}{t^*_x(-z)}
 \end{equation}
@@ -216,7 +233,7 @@ By rearranging the terms in the integral one gets (calling $t^* = t^*_x(z)$):
 \begin{equation}
     \lambda^*(x) = \int_0^\infty \left[1 + \frac{1}{t^*} g(t^*)\right]q(z)dz
 \end{equation}
-The authors then suggest that if the expression in the square brackets was constant then $\lambda^*(x)$ would become tractable which leads to the condition:
+The authors of \cite{SGDB} then suggest that if the expression in the square brackets was constant then $\lambda^*(x)$ would become tractable which leads to the condition:
 \begin{equation}
     g(t^*) = \frac{c}{1+ 1/t^*}
 \end{equation}
@@ -227,39 +244,40 @@ The last step of the derivation puts everything together and formalizes the stru
 \begin{equation}
     J^*(x,A) := \int_A 2g_b(\exp[(y-x)\nabla\log\pi(x)])q(y-x)dy
 \end{equation}
-Using $F_L(z):=1/(1+e^{-z})$ the cumulative distribution of the logistic distribution and noting $g_B(e^z)=F_L(z)$ one gets the transition density:
+Using $F_L(z):=1/(1+e^{-z})$ the cumulative distribution of the logistic distribution, and noting that $g_B(e^z)=F_L(z)$ one gets the transition density:
 \begin{equation}
     j^*(x,x+z)=2F_L(\nabla\log\pi(x)z)q(z)
 \end{equation}
-This density belongs to the family of \textit{skew-symmetric} distributions and therefore one can sample from this distribution using the barker proposal algorithm.
+This density belongs to the family of \textit{skew-symmetric} distributions and therefore one can sample from this distribution using the Barker proposal algorithm.
 \subsection{Extension to multiple dimensions}
-The Barker Proposal is designed for the one-dimensional case but it is possible to extend it. One way is to use $p = (1 + \exp{-z^T\dot \nabla f(\theta_{t-1})})^{-1}$ and allow only for movements in $\{-z, z\}$ directions. Alternatively one can compute a different $p_i$ for each component and thus allow $2^D$ possible movements. The latter explores the space better and is the one that is used in the literature.
+The Barker Proposal is designed for the one-dimensional case but it is possible to extend it. A choice is using $p = (1 + \exp{-z^T\dot \nabla f(\theta_{t-1})})^{-1}$ and allow only movements in $\{-z, z\}$ directions. Alternatively one can compute a different $p_i$ for each component and thus allow $2^D$ possible movements. The literature demonstrates that the latter better explores the space and is the preferred choice.
 
 If one naively applies the Barker proposal in a high-dimension regime a few problems arise:
 \begin{itemize}
-    \item The algorithm becomes very susceptible to the global stepsize $\sigma$
-    \item The probabilities $p_i$ become very concentrated around $1/2$ ($\sigma$ too small) or around $0, 1$ ($\sigma$ too big)
+    \item The algorithm becomes very sensitive to the global stepsize $\sigma$
+    \item The probabilities $p_i$ are very likely around $1/2$ ($\sigma$ too small) or around $0, 1$ ($\sigma$ too big)
 \end{itemize}
-Given those premises, a few changes have been made to the algorithm in order to make the tuning of the hyperparameters automatic and more robust with adaptive stepsizes and a "temperature" inspired by statistical physics algorithms.
-One thing to note is that most variables are treated separately for each layer of the network. This is done to help the algorithm dealing with different types of layers that can operate on very different scales of parameters. This makes the notation more cumbersome as it adds a subscript $l$ to every variable that depends on the layer.
-\begin{algorithm}    
+Given those premises, a few changes have been made to the algorithm to make the tuning of the hyperparameters automatic and more robust with adaptive stepsizes and a "temperature" inspired by statistical physics algorithms.
+One thing to note is that most variables are treated separately for each layer of the network. To help the algorithm deal with different types of layers that can operate on very different scales of parameters. This makes the notation more cumbersome as it adds a subscript $l$ that depends on the layer  to every variable.
+
+\begin{algorithm}
 \caption{Barker Proposal for NN}\label{alg:BP}
 \begin{algorithmic}[1]
 \Input {$\gamma_0$, $\gamma_r$, $\nabla f$, $\beta$, $\theta_0$}
 
 \Initialize $\mu_0 = 0_v$, $\sigma=0_v$
-\For {$t=1,...,K$} 
+\For {$t=1,...,K$}
 \For{$l$ in layers}
     \State $\mu_l = (1-\beta)\mu_l + \beta\nabla f_l(\theta_{t-1})$
     \State $\sigma_l = (1-\beta)\sigma_l + \beta(\nabla f_l(\theta_{t-1}) - \mu)^2$
 
-    
-    \State Draw $z \sim N(\mu_l, \mu_l/10)$ from a multinormal distribution 
-    
+
+    \State Draw $z \sim N(\mu_l, \mu_l/10)$ from a multinormal distribution
+
     \State Define $p = \frac{\displaystyle 1}{\displaystyle 1+ \exp{(-T_{l,t}z*\nabla f_l(\theta_{t-1}))}}$ with $*$ element-wise product
 
-    
-    
+
+
     \State Set $b_i=1$ with probability $p_i$ and $b_i=0$ otherwise
     \State $\theta_t = \theta_{t-1} + z * b$
 
@@ -267,7 +285,7 @@ One thing to note is that most variables are treated separately for each layer o
     \State $\alpha = \frac{1}{L}\sum_i^L|p_i - 1/2|$
     \State $\log(T_{l, t+1}) = \log(T_{l,t}) - \gamma_t(\alpha - 1/4)$
     \State $\gamma_t = \gamma_0/{t^{\gamma_r}}$
-    
+
 \EndFor
 \EndFor
 \end{algorithmic}
@@ -276,35 +294,36 @@ One thing to note is that most variables are treated separately for each layer o
 
 \subsection{Adaptive step size with online exponential mean}
 
-In order to scale the stepsize for each coordinate both the exponential mean and the variance are computed and then used to scale $z$. 
-The key point is to have $z$ in the right order of magnitude to explore the landscape. A stepsize too big would make the MCMC oscillate too much and, when actually running the code, it may also make gradients explode to infinity and make the network full of Nan. It is suggested (\cite{clip}) to clip the gradient for several reasons (which mainly revolve around the smoothing introduced by this clipping) and in this case it also helps deal with this issue which is not present in "less stochastic" optimization algorithms. This is not the only source of gradient explosions and more will be covered later.
+In order to scale the stepsize for each coordinate both the exponential mean and the variance are computed and used to scale $z$.
+The key point is to have $z$ in the right order of magnitude to explore the landscape. A stepsize too large would exacerbate the MCMC oscillations and, when actually running the code, it may also make gradients explode to infinity and result in numerical errors of the "Nan" type. It has been suggested (\cite{clip}) to clip the gradient for several reasons (which mainly revolve around the smoothing introduced by this clipping) and in this case it also helps deal with this issue which is not present in "less stochastic" optimization algorithms. This is not the only source of gradient explosions and more will be covered later.
 
 \subsection{Stochastic gradient}
-Given the size of datasets, it is often very expensive to compute the loss over the whole dataset $L(\theta) = \sum_i^N \mathcal{L}(\hat y_i, f(x_i, \theta))$. Usually it is better to extract a smaller sample $S$ of size $K$ from the dataset and only compute $\sum_i^K \mathcal{L}(\hat y_{S(i)}, f(x_{S(i)}, \theta)$. The difference in the two gradients vanishes in $O(1/\sqrt{K})$ by the central limit theorem if $N$ is big enough. Therefore in practical application, it is standard to use this (good) approximation implicitly. In PyTorch it is possible to abstract from this when writing the code for the optimization step and control $K$ when defining the model and the training loop.
-It is relevant to note that using those batches can make the training faster and more robust: more updates to the weights will be made in the same amount of computing time and some "good" noise is added which helps generalization. The way the batch size influences the training is obviously far more complicated [INCLUDERE ???] \cite{minibatch}.
+Given the size of datasets, it is often expensive to compute the loss over the whole dataset $L(\theta) = \sum_i^N \mathcal{L}(\hat y_i, f(x_i, \theta))$. Usually, it is more convenient to extract a smaller sample $S$ of size $K$ from the dataset and only compute $\sum_i^K \mathcal{L}(\hat y_{S(i)}, f(x_{S(i)}, \theta)$. The difference in the two gradients vanishes in $O(1/\sqrt{K})$ for the central limit theorem if $N$ is big enough. Therefore in practical application, it is standard to use this (good) approximation implicitly. In PyTorch it is possible to abstract from this when writing the code for the optimization step and control $K$ when defining the model and the training loop.
+It is relevant to note that using those batches can make the training faster and more robust: more updates to the weights will be made in the same amount of computing time and some "good" noise is added which helps generalization. The way the batch size influences the training is obviously far more complicated as the noise and the frequency of the updates work in opposite directions. There is a significant amount of theory and applications behind tuning the batch size \cite{minibatch} but given the scope of the algorithm it has been considered superfluous and dangerous to set it as a variable hyper-parameter (dangerous from a multiple hypothesis testing perspective).
 
 
 \subsection{Temperature}
-As mentioned above a temperature $T_l$ has been added in how the acceptance probability is computed (line 6):
+As mentioned above a temperature $T_l$ has been added in how the acceptance probability is computed (line 6 of \ref{alg:BP}):
 
 \begin{equation}
 p = \frac{1}{1 + \exp{(-T_{l,t}z*\nabla f_l(\theta_{t-1}))}}
 \end{equation}
-In this way, this $T$ acts as a stepsize and helps the MC to have reasonable accepting probabilities. For instance, the desired behavior is neither a measure concentrated around $50\%$ nor close to $100\%$. The temperature is adaptive (lines 10-12) and works as follows:
+In this way, $T$ acts as a stepsize and helps the MC to have reasonable accepting probabilities. For instance, the desired behavior is neither a measure concentrated around $50\%$ nor close to $100\%$. The temperature is adaptive (lines 10-12) and works as follows:
 \begin{equation}
 \alpha = \frac{1}{L}\sum_i^L|p_i - 1/2|
 \end{equation}
-is the average distance from $1/2$ and one wants this not to be close to $0$ (random steps) or $1/2$ every proposal is accepted. Here it is proposed to use $\alpha^*=1/4$ as standard, which makes the distribution flat but it does not always work. For instance, for larger models, it can lead to unstable behavior as shown in figure \ref{fig:large unstable}. A good heuristic is to lower $\alpha$ when the number of parameters of the model increases.  
+is the average distance from $1/2$ and one wants this not to be close to $0$ (random steps) or $1/2$ every proposal is accepted. Here it is proposed to use $\alpha^*=1/4$ as standard, which makes the distribution flat but it does not always work. For instance, for larger models, it can lead to unstable behavior as shown in figure \ref{fig:large unstable}. A good heuristic is to lower $\alpha$ when the number of parameters of the model increases.
 
 
 \begin{figure}[h]
+\centering
 \includegraphics[scale=0.35]{TrainingPlots/Largeunstable.png}
 \caption{Training of a large model (12M parameters, 10 layers) with a parameter $\alpha*=1/4$ which leads to chaotic behavior and a gradient explosion}
 \label{fig:large unstable}
 \end{figure}
 
 
-In order to correct $T$ a step similar to algorithm 4 of Andrieu and Thoms \cite{Andrieu} is executed:
+In order to correct $T$ a step similar to algorithm 4 of Andrieu and Thoms \cite{Andrieu} is employed:
 \begin{equation}
 \log(T_{t}) = \log(T_{t-1}) - \gamma_t(\alpha(p(T_{t-1})) - \alpha^*)
 \end{equation}
@@ -313,10 +332,10 @@ In order to correct $T$ a step similar to algorithm 4 of Andrieu and Thoms \cite
 \end{equation}
 
 
-The stepsize is decreasing as keeping it fixed would implement a non-markovian behavior. In this way, after a certain time, the temperature oscillations become very small and negligible. The decrease rate $\gamma_r$ of the stepsize and the initial value $\gamma_0$ need to be picked but they only control how fast the temperature can change at the beginning. For every sensible choice of parameters they converge quite quickly to the same equilibrium values as shown in figure \ref{fig:temperature} so they are not important parameters to tune nor are they difficult.
+The stepsize is decreasing as keeping it fixed would result in non-Markovian behavior. In this way, after a certain time, the temperature oscillations become negligible. The decrease rate $\gamma_r$ of the stepsize and of the initial value $\gamma_0$ only control how fast the temperature can change at the beginning. For every sensible choice of parameters they converge quite quickly to the same equilibrium values as shown in figure \ref{fig:temperature} so they are not important parameters to tune nor are they difficult to pick up.
 
 \begin{figure}[h]
-\includegraphics[scale=0.35]{temperatures on CNN gamma=.3.png}    
+\includegraphics[scale=0.35]{temperatures on CNN gamma=.3.png}
 \includegraphics[scale=0.35]{temperatures on CNN gamma=.1.png}
 \caption{Temperature evolution in time: The network has 204186 parameters and 6 hidden layers (see CnnMedium in the code)}
 \label{fig:temperature}
@@ -325,12 +344,12 @@ The stepsize is decreasing as keeping it fixed would implement a non-markovian b
 
 \subsection{Curse of dimensionality}
 
-Very often in MCMC methods the temperature is included in the form of stepsize, namely $z \sim N(T\mu, T\mu/10)$. This choice makes sense from the physical perspective where a system at high temperature will tend to move more. This solution sadly seems to break down due to a scaling problem caused by the high-dimensionality. First of all it is possible to get the following derivation for the order of magnitude of $T$. Independently of whether the temperature is part of z or if it is multiplied only when computing $p$ one gets:
+Very often in MCMC methods, the temperature is included in the form of stepsize, namely $z \sim N(T\mu, T\mu/10)$. This choice makes sense from the physical perspective where a system at high temperature will tend to move more. This solution sadly seems to break down due to a scaling problem caused by the high-dimensionality. First of all, it is possible to get the following derivation for the order of magnitude of $T$. Independently of whether the temperature is part of z or if it is multiplied only when computing $p$ one gets:
 \begin{align}
     p_i &= \frac{1}{1+\exp(T (\partial_i f)^2)} \\
     p_i &\sim 1/4 \\
     \exp(T (\partial_i f)^2) &\sim 3 \\
-    T (\partial_i f)^2 &\sim 1    
+    T (\partial_i f)^2 &\sim 1
 \end{align}
 Empirically one can see that in general $\normx{\nabla f} \sim 1$ for neural networks, which implies that $\mathbb{E}[(\partial_i f)^2] \sim 1/N$ where $N$ is the number of parameters of the network. In turns this means that $T \sim N$. Considered that $N$ is in the order of millions generally (even a simple logistic regression on CIFAR10 has 30'000 parameters) incorporating this temperature in the stepsize would not change the acceptance probabilities but it would just make the network diverge after very few steps.
 In the section about fine-tuning, a different way of setting a stepsize will by tested confirming that an online estimate of the gradient is a sensible choice that is both robust and capable of adapting to the size of the network.
@@ -340,7 +359,6 @@ Given the MCMC nature of the algorithm, once it stabilizes on the stationary dis
 
 \begin{table}[h]
   \centering
-  \caption{Minimum and Median Effective Sample size for different models and probabilities combinations \\ }
   \label{tab:ess}
   \begin{tabular}{|c| c c c c|}
     \hline
@@ -356,6 +374,7 @@ CnnMedium & 50 & 5.0\% & 1.5, 5.8 & 12.1, 18.4 \\
 CnnMedium & 50 & 2.5\% & 1.5, 4.7 & 9.0, 18.4 \\
     \hline
   \end{tabular}
+  \caption{Minimum and Median Effective Sample size for different models and probabilities combinations \\ }
 \end{table}
 
 
@@ -368,7 +387,7 @@ CnnMedium & 50 & 2.5\% & 1.5, 4.7 & 9.0, 18.4 \\
 As one can see from \ref{tab:ess} the ESS does not depend on the frequency at which models were picked. This is a known issue: in high-dimensional regimes, the mixing of a MCMC is very slow and it is quite inevitable to experience this phenomenon. In other words, all the points visited by the MC are highly correlated independently of the frequency.
 
 \subsection{Extreme version}
-As suggested in \cite{} [Stochastic Gradient Barker Dynamics] a simple and natural variation that one can do to the algorithm is to remove the stochasticity in choosing $b$ and just setting $b=1$ if $p<1/2$ and $b=-1$ if $p>1/2$. In this way, the algorithm will simply follow the gradient using a random stepsize. This seems to work well only in low dimensional regimes as shown in figure \ref{fig: extreme breaking}. On the top there are 2 quite large models for which the training failed. After epoch 4 and 5 respectively the parameters of the network became Nan. The loss also was already showing an unstable behaviour. On the bottom instead the training of a logistic regression with the extreme version of SGBD and without. In both case the training is quite similar.
+As suggested in \cite{SGDB} a simple and natural variation that one can do to the algorithm is to remove the stochasticity in choosing $b$ and just setting $b=1$ if $p<1/2$ and $b=-1$ if $p>1/2$. In this way, the algorithm will simply follow the gradient using a random stepsize. This seems to work well only in low dimensional regimes as shown in figure \ref{fig: extreme breaking}. On the top there are 2 quite large models for which the training failed. After epoch 4 and 5 respectively the parameters of the network became Nan. The loss also was already showing an unstable behaviour. On the bottom instead the training of a logistic regression with the extreme version of SGBD and without. In both case the training is quite similar.
 
 
 
@@ -384,53 +403,62 @@ Under condition \ref{Condition 2} it is possible to recover a bound on the bias 
 \begin{equation}
     \left| \displaystyle \mathbb{E}[p(\hat\nabla g(\theta), z)] -p\left(\frac{1.702}{\sqrt{1.702^2 + z^2\tau^2(\theta)}} \nabla g(\theta), z\right) \right| < 0.019
 \end{equation}
-The proof can be found in [cita SGBD] \ref{}.
+The proof can be found in \cite{SGDB}.
+\begin{figure}[h]
+\includegraphics[scale=0.35]{TrainingPlots/CorrectP.png}
+\caption{Difference between estimation using $p$ (true gradient), $\Tilde{p}$ (Barker proposal with noisy gradient) and $\hat{p}$ (corrected version with noisy gradient) \cite{SGDB}. On the y-axis there is the acceptance probability of the three methods and on the x-axis there is the proposed $z$.}
+\label{fig:corrected}
+\end{figure}
 This motivates the definition of a new estimator $\Tilde{p}$ that takes into account this factor as follows:
 \begin{align}
     \hat\alpha &= \frac{1.702}{\sqrt{1.702^2 - z^2\tau^2(\theta)}} \\
     \Tilde{p}_\alpha(\hat\nabla g(\theta),z) &= \frac{1}{1 + \exp(-z\alpha \hat\nabla g(\theta))}
 \end{align}
 
-\begin{figure}[h]
-\includegraphics[scale=0.35]{TrainingPlots/CorrectP.png}
-\caption{Difference between estimation using $p$ (true gradient), $\Tilde{p}$ (Barker proposal with noisy gradient) and $\hat{p}$ (corrected version with noisy gradient) [CITA PAPER].}
-\label{fig:corrected}
+
+
+This can only be applied whenever $|z| < 1.702/\tau(\theta)$ and as shown in figure \ref{fig:corrected} it has a positive impact on a significant range of values of $z$.
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[scale=.75]{TrainingPlots/corrected statistics.png}
+    \caption{Empirical data of the distribution of the proposed steps z between epochs 4 and 6 (so once the training has stabilized and is quite stationary). On the y-axis there is the frequency for each bin (the number of bins is 10000 and 35 respectively). The distribution is very concentrated around 0 as already pointed out in the analysis of the order of magnitude and this affects also the correcting factor $\alpha$. It is clear that the distribution of $\alpha$ is very concentrated around 1, therefore the correction ($z_c = \alpha z$) does not influence the acceptance probability.}
+    \label{fig: corrected statistics}
 \end{figure}
-
-This can only be applied whenever $|z| < 1.702/\tau(\theta)$ and as shown in figure \ref{fig:corrected} it has a good impact on a significant range of values of $z$.
-
-
-
 
 
 
 \section{Results}
 
+In this section the results of the experiments will be presented, together with a precise description of the networks, the datasets and the parameter tested.
 \subsection{Dataset}
 The models have been tested on MNIST and CIFAR10, two image classification datasets. MNIST consists of 60,000 28x28 gray-scale images of handwritten digits and it has been very extensively studied and almost "solved
-" in the sense that very good classifiers have been written which achieve almost perfect accuracy and it is fairly easy to go above 99\%. CIFAR10, which is a subset of CIFAR, consists of 60,000 32x32 colored pictures of various objects. CIFAR10 only contains the following 10 classes: [plane, car, bird, cat, deer, dog, frog, horse, ship, truck]. This dataset is significantly harder and scoring above 50\% cannot be achieved via classic algorithms such as SVM or logistic regressions.
+" in the sense that very good classifiers have been written which achieve almost perfect accuracy and it is fairly easily above 99\%. It has been used as a benchmark to see if the algorithm was converging as it has quite small images (28*28) and can be iterated over quickly. The other dataset, called CIFAR10, is a subset of CIFAR and consists of 60,000 32x32 colored pictures of various objects. CIFAR10 only contains the following 10 classes: [plane, car, bird, cat, deer, dog, frog, horse, ship, truck]. This dataset is significantly harder and scoring above 50\% cannot be achieved via classic algorithms such as SVM or logistic regressions.
 
 \subsection{Methodology}
-The algorithm has been tested against Adam, [parameter tested ecc, inserisci qui insomma]. The idea was to test as little hyperparameters as possible for both methods, so only a grid search on the learning rate and on weight decay has been performed. The best learning rate was always $0.001$ which is also the default value and it was consistently better on all the models tested. The weight decay instead has been set to $0.01$ and it is the only form of regularization applied.
+
+\begin{wrapfigure}{r}{3.1cm}
+    \includegraphics[width=3.1cm]{TrainingPlots/medium CNN architecture.png}
+    \caption{Medium CNN architecture. The large model is similar, just with more layers and parameters}
+    \label{fig: CNN architecture}
+    \vspace{-70pt}
+\end{wrapfigure}
+
+
+The algorithm has been tested against Adam. The philosophy was to test as few hyperparameters as possible for both methods, so only a grid search on the learning rate and on weight decay has been performed. The best learning rate was always $0.001$ which is also the default value and it was consistently better on all the models tested. The weight decay instead has been set to $0.01$ and it is the only form of regularization applied.
 \subsection{Training of CNN}
-The first model that has been tested is a small convolutional neural network with the following architecture. The total number of parameters is 204,186 when trained on CIFAR10.
+The first model that has been tested is a small convolutional neural network with architecture illustrated in figure \ref{fig: CNN architecture}. The total number of parameters is 204,186 when trained on CIFAR10.
 
-\begin{verbatim*}
-----------------------------------------------------------------
-        Layer (type)               Output Shape         Param #
-================================================================
-            Conv2d-1           [-1, 16, 30, 30]             448
-            Conv2d-2           [-1, 16, 28, 28]           2,320
-           Dropout-3           [-1, 16, 14, 14]               0
-            Linear-4                   [-1, 64]         200,768
-           Dropout-5                   [-1, 64]               0
-            Linear-6                   [-1, 10]             650
-================================================================
-Total params: 204,186
-\end{verbatim*}
+As it is possible to observe on \ref{fig:Convolutional model training} SGDB performs better than ADAM on this model.
+The accuracy of the ensemble is better than just using the last iteration of the epoch but it suffers from higher loss. Depending on the problem those two different models can both be useful: often the network confidence in its answer is discarded as it has no practical use, hence, it is better to have higher accuracy.
 
+When training larger models a different pattern is seen as shown in figure \ref{fig:LargeModel training}. SGDB is capable of finding a better training accuracy, probably due to its ability to explore the parameter space but the training loss starts to grow after very few epochs. This is a classic example of overfitting but nevertheless, the test accuracy is still higher. A possible explanation is that the model is polarizing more so the loss is going up but the accuracy is not catching this phenomenon.
 
-\begin{figure}[h]
+One general consideration is that ADAM has been specifically designed to train neural networks so it is expected to be able to find wider minima (i.e. better generalization error). On the other hand, SGDB can more easily run into overfitting issues as it is only trying to minimize the training error by visiting as much of the parameter space as possible. This effect is more visible in the training of this bigger convolutional model in \ref{fig:LargeModel training} and in the training of ResNet18 which required some special parameters to be set and will be discussed later. In this case, the model has multiple dropout layers as shown in figure \ref{fig: CNN architecture} which help regularization and therefore SGDB is performing better. [Probabilmente richiede una riscrittura sto paragrafo]
+
+\begin{figure}[ht]
 \includegraphics[scale=0.35]{TrainingPlots/CNNmedium1.png}
 \includegraphics[scale=0.35]{TrainingPlots/CNNmedium2.png}
 \\
@@ -438,11 +466,6 @@ Total params: 204,186
 \caption{Training iterations of Cnn network on CIFAR10. Training parameters are all default for SGDB, for Adam lr=$10^{-3}$, weight\_decay=$10^{-2}$}
 \label{fig:Convolutional model training}
 \end{figure}
-
-As it is possible to observe on \ref{fig:Convolutional model training} SGDB seems to perform better than ADAM on this parameter size.
-The accuracy of the ensemble is better than just using the last iteration of the epoch but it suffers from higher loss. Depending on the problem those two different models can both be useful: often the network confidence in its answer is discarded as it has no practical use, hence, it is better to have higher accuracy. 
-
-One general consideration is that ADAM has been specifically designed to train those networks and therefore it is a form of regularization. On the other hand, SGDB can more easily run into overfitting issues as it is only trying to minimize the training error. It is more clearly visible in the training of this bigger convolutional model in \ref{fig:LargeModel training}.
 
 \subsection{Running time}
 The overall running time of one epoch of SGDB is similar to Adam and other optimization algorithms. They both require the gradient to be computed so the forward-pass and the backward-pass are executed in both cases and they take most of the time. One thing to note is that SGDB has some calculations that depend on the layers so the number of parameters is not the only factor for speed as the depth/width ratio also matters. The computations of the corrected version suffer from less parallelization so the ratios between GPU/CPU time are different.
@@ -460,8 +483,8 @@ The overall running time of one epoch of SGDB is similar to Adam and other optim
     LargeCNN & SGDB & 158.0s & 26.0s \\
     \hline
   \end{tabular}
-    \caption{Running time of Adam vs SGDB \\ 
-    CPU and GPU time are not comparable: the training was done on two different devices and operative systems, the CPU is an i5-1135G7 and the model was compiled with torch.compile while the GPU is a GTX-970M running on Windows. This benchmark does not include the time it takes to load data into memory. Furthermore, the time is quite stable and with standard deviation of virtually 0}
+    \caption{Running time of Adam vs SGDB \\
+    CPU and GPU time are not comparable: the training was done on two different devices and operative systems, the CPU is an i5-1135G7 and the model was compiled with torch.compile while the GPU is a GTX-970M running on Windows. This benchmark does not include the time it takes to load data into memory. Furthermore, the time is quite stable and with a standard deviation of virtually 0}
 \end{table}
 
 \subsection{Convergence speed}
@@ -476,24 +499,51 @@ The convergence speed of SGDB has been compared to the one of Adam with the foll
 \label{fig:LargeModel training}
 \end{figure}
 
-\subsection{Training of Dense MLP}
-\subsection{Finetuning on Resnet}
-A training pattern that has recently become very popular is finetuning [cite]. The idea consists of taking an already existing model which has been trained on a large dataset and then re-training (fine-tuning) it for a few epochs on a more specific problem of interest. The advantages are not only the lower computational cost due to most of the training already completed by someone else but also the higher performance of those networks: given the larger amount of patterns they have seen, they tend to generalize better. Another key factor is the number of open-source models available which is steadily increasing.
-The model that has been tested with SGDB is Resnet18 [cita fonte] with weights pre-trained on ImageNet1K [cita fonte]. 
-Due to the weights already being in a good position in the parameter space one does not want to change them too much so it is usually advised to lower the learning rate of gradient descent. In the way the SGDB algorithm is formulated there is no learning rate so a modified version has been used and instead of updating $\theta_t = \theta_{t-1} + z * b$ it uses:
+\subsection{Training of Resnet}
+A model in computer vision that has been very popular is ResNet \cite{} which in 2015 reached State-of-the-Art performance on various datasets (including CIFAR10). Those results won them 1st place on the ILSVRC 2015 classification task. ResNet stands for Residual Networks and indicates the presence of skip connections and a very deep network. This depth can induce some issues and in fact, during the training of ResNet18 with SGDB a few problems arose, in particular, the temperature was diverging on certain layers (figure \ref{fig:diverging temperature}). The gradients on those last few layers have gradients that are too small and to compensate the temperature starts to go up until it reaches a threshold ($\sim 10^40$) at which the acceptance probability cannot be computed and just return Nan. To fix this issue a simple upper limit to the temperature has been added, imposing $\log (T) < 30$.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=.35]{TrainingPlots/temperature diverging.png}
+    \caption{Temperature in ResNet18. It is clear that one of the temperatures keeps increasing without showing any sign of damping}
+    \label{fig:diverging temperature}
+\end{figure}
+Overall the training of ResNet seems slightly inferior to SGDB compared to Adam and it proposed a challenge due to the depth of the network. ResNet seemed to be too unstable, usually when one sees noise like in figure \ref{fig: adam non pretrained} at stepsize=1 the solution is to reduce the learning rate. In the way the SGDB algorithm is formulated there is no learning rate (or it is implicitly 1) so a modified version has been used and instead of updating $\theta_t = \theta_{t-1} + z * b$ it uses:
 \begin{equation}
     \theta_t = \theta_{t-1} + \sigma z * b
 \end{equation}
 So that all the temperatures and accepting probabilities still work. Another possibility is to scale $z$ by the learning rate $\sigma$ but empirically it seems less stable.
 
+\begin{figure}[h]
+    \centering
+    \includegraphics[scale=.28]{TrainingPlots/resnet non pretrained horizontal tight.png}
+    \caption{Different training of ResNet18. On the left there is Adam, used as a baseline comparison, the other 3 are SGDB with different stepsizes. The one that performed better was the default stepsize=1 but it seems very unstable. Smaller stepsizes do not perform as well. Using values lower than $0.01$ could not make the network converge in a reasonable amount of epochs.}
+    \label{fig: adam non pretrained}
+\end{figure}
+Despite the different behaviors at different learning rates, the overall pattern is that rates close to 1 seem to work better and below $0.01$ it just is not able to learn. In contrast to Adam where the standard learning rate is quite lower and the algorithm is more susceptible (other algorithms such as SGD are even more delicate to tune). It is worth noting that for the other CNN changing the learning rate did not yield any significant result (better accuracy was achieved slightly below 1) and the better results are probably just due to noise and multiple hypothesis testing effects.
 
+\subsection{Finetuning on Resnet}
+A training pattern that has recently become very popular is finetuning [cite]. The idea consists of taking an already existing model which has been trained on a large dataset and then re-training (fine-tuning) it for a few epochs on a more specific problem of interest. The advantages are not only the lower computational cost due to most of the training already completed by someone else but also the higher performance of those networks: given the larger amount of patterns they have seen, they tend to generalize better. Another key factor is the number of open-source models available which is steadily increasing.
+The model that has been tested with SGDB is Resnet18 with weights pre-trained on ImageNet1K \cite{imagenet}.
+Due to the weights already being in a good position in the parameter space one does not want to change them too much so it is usually advised to lower the learning rate of gradient descent.
 
 
 \begin{figure}[h]
-\includegraphics[scale=0.35]{TrainingPlots/largemodelADAM.png}
+\centering
+\includegraphics[scale=0.3]{TrainingPlots/resnet pretrained.png}
+\label{fig: resnet pretrained}
+\caption{Different training on ResNet18 starting from the model pretrained on ImageNet1k.}
 \end{figure}
 
+Looking at figure \ref{fig: resnet pretrained} there are a few things to notice: the optimal stepsize is $0.1$ and the training error goes down faster than Adam but the generalization is worse. The first effect supports the idea that keeping the stepsize at 1 as a default value is sensible and that the order of magnitude of the step is $O(1)$. The second effect has multiple possible explanations and probably it is a result of a combination of different factors. The main point is that both algorithms find a parameter configuration such that every image in the training set is correctly classified and with good confidence (cross-entropy loss $<0.01$) and SGBD reaches those values faster but the generalization error (test loss) has an opposite pattern. This suggests that SGDB is more overfit-prone compared to Adam. ResNet does not have any dropout layer while on the other custom CNN architecture there were multiple with significant dropout rates ($0.25$ and $0.5$).
+
+
+\section{Conclusions}
+The Stochastic Gradient Barker Dynamics Algorithm has been tested in an optimization setting in which multiple Neural Networks were trained. It shows excellent training potential and some technical challenges. Results indicate that the performance of SGBD can overall be better/on par with Adam. The ability of the algorithm to visit the parameter space makes it perform consistently better on the train loss/accuracy therefore it is more suited to finding minima. It also incurred into higher generalization errors in Networks without enough regularization.
+
+It has also been demonstrated that it is possible to remove certain hyperparameters (stepsize and temperature) and automatically tune them, thus suggesting that it might be possible to further automatize the hyperparameter tuning of the algorithm.
+
+\newpage
 \printbibliography
 
 \end{document}
-

@@ -16,10 +16,31 @@ _params_t = Union[Iterable[Tensor], Iterable[Dict[str, Any]]]
 
 
 class SGBD(Optimizer):
-    # Init Method:
-    def __init__(self, params, n_params, device, defaults: Dict[str, Any], corrected=False, extreme=False,
-                 ensemble=None, thermolize_epoch=None, epochs=None, batch_n=None, step_size=None, alfa_target=1 / 4,
-                 select_model=1 / 20, global_stepsize=1):
+    """SGDB optimizer. This class inherits from Optimizer and can be used to train a pytorch model."""
+
+    def __init__(self, params, device: torch.device, defaults: Dict[str, Any], corrected=False, extreme=False,
+                 ensemble: List = None, thermolize_epoch=None, batch_size=None, step_size=None,
+                 alfa_target=1 / 4,
+                 select_model=1 / 20, global_stepsize=1, plot_corrected_stats=False):
+        """
+        :type params: _params_t
+        :param params: model.parameters(), necessary for the optimizer
+        :param device: torch device
+        :param defaults: parameters to pass to the Optimizer super class
+        :param corrected: Whether to use the corrected version of SGDB
+        :param extreme: Whether to use the extreme version of SGDB
+        :param ensemble: Ensemble of models, used by SGDB, use None if it's empty
+        :param thermolize_epoch: Epoch to start collecting models for the ensemble
+        :param batch_size: Batch size, used for data collecting
+        :param step_size: If None, ignored, otherwise used to set a fix stepsize in SGDB. Used for testing purposes as it is quite bad for training
+        :param alfa_target: Target alfa value for the temperatures
+        :param select_model: Selection probability of the ensemble
+        :param global_stepsize: Global stepsize, suggested value is 1
+        :param plot_corrected_stats: Whether to plot the corrected statistics, used to produce plots for the thesis. If True it will plot and close the training
+        """
+
+        self.n_params = sum(p.numel() for p in params)
+
         super().__init__(params, defaults)
 
         # used for recording data
@@ -32,24 +53,25 @@ class SGBD(Optimizer):
         self.sigma = .01
         self.beta = .1
         self.corrected = corrected
-        self.n_params = n_params
+
         self.select_model = select_model
         self.extreme = extreme
         self.thermolize_epoch = thermolize_epoch
-        self.epochs = epochs
-        self.batch_n = batch_n
+        self.batch_n = batch_size
         self.batch_counter = 0
 
         self.step_size = step_size
 
-        size = 10 ** 4
-        self.range = (-.0015, 0.0015)
-        self.bins = np.linspace(*self.range, size + 1)
-        self.histogram_corrected = np.zeros((size,))
+        self.plot_corrected_stats = plot_corrected_stats
+        if plot_corrected_stats:
+            size = 10 ** 4
+            self.range = (-.0015, 0.0015)
+            self.bins = np.linspace(*self.range, size + 1)
+            self.histogram_corrected = np.zeros((size,))
 
-        self.bins_alfa = np.linspace(1., 1.00002, 35 + 1)
-        self.histogram_corrected_alfa = np.zeros((35,))
-        self.seen = 0
+            self.bins_alfa = np.linspace(1., 1.00002, 35 + 1)
+            self.histogram_corrected_alfa = np.zeros((35,))
+            self.seen = 0
 
         # state vars
         self.state = dict()
@@ -77,6 +99,7 @@ class SGBD(Optimizer):
 
         self.corrected_statistics = {}
 
+        # Some parameters require layer level initialization
         for group in self.param_groups:
             for p in group['params']:
                 self.state[p] = dict(mom=torch.zeros_like(p.data))
@@ -103,22 +126,23 @@ class SGBD(Optimizer):
         # gamma does not depend on the layer
         self.gamma = self.gamma_base / (self.batch_counter ** self.gamma_rate)
         self.gamma_history.append(self.gamma)
-        for group in self.param_groups:
 
-            for p in group['params']:  # iterates over layers, i.e. extra iteration on parameters
-                # if p.grad is None:
-                #     continue
+        for group in self.param_groups:  # iterates over layers, i.e. extra iteration on parameters
+            for p in group['params']:
 
                 # update online mean and online var with the new gradient
                 self.update_online(p)
 
+                # Draw step proposal
                 self.z[p] = self.z[p].normal_(0, 1)
-
                 sigma = self.online_mean[p]
                 self.z[p] *= 0.1 * sigma
                 self.z[p] += sigma
 
+                # temperature are stored as logs
                 t = math.exp(self.log_temp[p])
+
+                # apply correction
                 if self.corrected:
                     tau = torch.sqrt(self.online_var[p])
                     m = abs(tau * self.z[p]) < 1.702
@@ -127,66 +151,24 @@ class SGBD(Optimizer):
                     alfa_c = self.torch_module.FloatTensor(self.z[p].shape).fill_(1)
                     alfa_c[m] = 1.702 / ((1.702 ** 2 - tau[m] ** 2 * self.z[p][m] ** 2) ** .5)
 
-                    if self.batch_counter > 500:  # 2 epochs
-                        self.histogram_corrected += np.histogram(self.z[p].cpu().numpy(), bins=self.bins)[0]
-                        self.seen += self.z[p].numel()
+                    # plot if self.plot_corrected_stats is True, used to produce plots
+                    if self.plot_corrected_stats:
+                        self.plot_correction_statistics(p, alfa_c)
 
-                        self.histogram_corrected_alfa += np.histogram(alfa_c.cpu().numpy(), bins=self.bins_alfa)[0]
-
-                    if self.batch_counter > 700:
-                        plt.figure(figsize=(8, 6))
-                        fig, ax = plt.subplots(ncols=2, figsize=(12, 5))
-                        plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=0.3)
-
-                        ax[0].plot(self.bins[:-1], self.histogram_corrected / self.seen)
-                        ax[0].fill_between(self.bins[:-1], self.histogram_corrected / self.seen,
-                                           [0] * len(self.histogram_corrected), alpha=.75)
-                        # ax[0].set_yscale("log")
-
-                        ax[0].set_ylabel("Frequency")
-                        ax[0].set_xlabel("z")
-                        ax[0].grid()
-                        ax[0].set_title("Distribution of proposed step z")
-
-                        # print(alfa_c)
-                        ax[1].plot(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen)
-                        ax[1].fill_between(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen,
-                                           [0] * len(self.histogram_corrected_alfa), alpha=.75)
-                        ax[1].set_yscale("log")
-                        ax[1].grid()
-                        ax[1].set_ylabel("Frequency (log-scale)")
-                        ax[1].set_xlabel(r"$\hat\alpha$")
-                        ax[1].set_title(r"Distribution of correcting factor $\alpha$")
-                        plt.show()
-                        exit()
-
-                    # if random.random() < 1/100:
-                    #     print(alfa_c[0])
-                    #     print(tau[0])
-                    #     input()
-
-                    probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p] * alfa_c))
+                    probabilities = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p] * alfa_c))
                 else:
-                    probs = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p]))
+                    probabilities = 1 / (1 + torch.exp(-t * p.grad.data * self.z[p]))
 
-                # region Temperature correction
-                alfa = abs(probs - 0.5).mean()
+                # Temperature update
+                alfa = abs(probabilities - 0.5).mean()
                 self.log_temp[p] = self.log_temp[p] - self.gamma * (alfa - self.alfa_target)
                 if self.log_temp[p] > 30:
                     self.log_temp[p] = 30
 
-                # if torch.isnan(self.log_temp[p]) == True:
-                #     debug = 0
-                # self.global_stepsize[p] -= self.gamma / 100 * (alfa - self.alfa_target)
-
-                # print(self.log_temp[p], self.log_global_stepsize[p])
-                # self.temperature_history[p][0].append(self.batch_counter)
-                # self.temperature_history[p][1].append(math.exp(self.log_temp[p]))
-                # endregion
-
+                # logs and plots probabilites, used for data collection
                 if LOG_PROB:
                     if self.batch_counter / self.batch_n >= 1 and self.probabilities[p] is None:
-                        self.probabilities[p] = list(probs.flatten())
+                        self.probabilities[p] = list(probabilities.flatten())
                         self.isp[p] = True
                     if self.batch_counter // self.batch_n == 2 and self.isp[p] is True:
                         plt.hist(self.probabilities[p], bins=50)
@@ -195,21 +177,17 @@ class SGBD(Optimizer):
                         plt.show()
                         self.isp[p] = False
                     elif self.probabilities[p] is not None and self.isp[p] is True:
-                        self.probabilities[p].extend(probs.flatten())
-                # endregion
+                        self.probabilities[p].extend(probabilities.flatten())
 
+                # computes the direction to move
                 if self.extreme:
-                    sampled = (1 - probs) * 2 - 1
+                    sampled = (1 - probabilities) * 2 - 1
                 else:
-                    sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probs
-
+                    sampled = self.torch_module.FloatTensor(p.grad.data.shape).uniform_() - probabilities
                 temp_var = (torch.ceil(sampled) * 2 - 1) * self.z[p]
-                p.data = p.data + temp_var * self.global_stepsize
 
-                # print(torch.any(torch.isnan(temp_var * self.global_stepsize)))
-                # if torch.any(torch.isnan(temp_var * self.global_stepsize)) == True:
-                #     debug = 0
-                #     print("orcodio")
+                # updates the weights
+                p.data = p.data + temp_var * self.global_stepsize
 
         # region Replace old models in ensemble
         if len(self.ensemble) > 0:
@@ -227,7 +205,8 @@ class SGBD(Optimizer):
         return .0
 
     def update_online(self, p):
-        if self.online_mean[p] is None:
+        """Updates the online mean and online var of the layer"""
+        if self.online_mean[p] is None:  # only ran once
             self.online_mean[p] = p.grad.data
             self.online_var[p] = self.torch_module.FloatTensor(p.grad.data.shape).fill_(0)
         else:
@@ -235,6 +214,39 @@ class SGBD(Optimizer):
             self.online_mean[p] += self.beta * p.grad.data
             self.online_var[p] *= (1 - self.beta)
             self.online_var[p] += self.beta * (p.grad.data - self.online_mean[p]) ** 2 * self.batch_n
+
+    def plot_correction_statistics(self, p, alfa_c):
+        if self.batch_counter > 500:  # 2 epochs
+            self.histogram_corrected += np.histogram(self.z[p].cpu().numpy(), bins=self.bins)[0]
+            self.seen += self.z[p].numel()
+
+            self.histogram_corrected_alfa += np.histogram(alfa_c.cpu().numpy(), bins=self.bins_alfa)[0]
+
+        if self.batch_counter > 700:
+            plt.figure(figsize=(8, 6))
+            fig, ax = plt.subplots(ncols=2, figsize=(12, 5))
+            plt.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.28, hspace=0.3)
+
+            ax[0].plot(self.bins[:-1], self.histogram_corrected / self.seen)
+            ax[0].fill_between(self.bins[:-1], self.histogram_corrected / self.seen,
+                               [0] * len(self.histogram_corrected), alpha=.75)
+
+            ax[0].set_ylabel("Frequency")
+            ax[0].set_xlabel("z")
+            ax[0].grid()
+            ax[0].set_title("Distribution of proposed step z")
+
+            # print(alfa_c)
+            ax[1].plot(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen)
+            ax[1].fill_between(self.bins_alfa[:-1], self.histogram_corrected_alfa / self.seen,
+                               [0] * len(self.histogram_corrected_alfa), alpha=.75)
+            ax[1].set_yscale("log")
+            ax[1].grid()
+            ax[1].set_ylabel("Frequency (log-scale)")
+            ax[1].set_xlabel(r"$\hat\alpha$")
+            ax[1].set_title(r"Distribution of correcting factor $\alpha$")
+            plt.show()
+            exit()
 
 
 LOG_PROB = False
